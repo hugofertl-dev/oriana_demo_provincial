@@ -1,0 +1,139 @@
+<mxfile host="65bd71144e">
+    <diagram name="Arnés nuevo" id="arnes-nuevo">
+        <mxGraphModel dx="1392" dy="832" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="850" background="#FFFFFF" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="lienzo" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cccccc;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="10" width="1350" height="800" as="geometry"/>
+                </mxCell>
+                <mxCell id="title" value="ARNÉS NUEVO — un solo agente, proceso según el tamaño de la tarea" style="text;html=1;fontSize=18;fontStyle=1;align=center;fontColor=#1a1a1a;fillColor=#ffffff;" parent="1" vertex="1">
+                    <mxGeometry x="300" y="25" width="800" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="pedido" value="👤 Pedido&#10;del usuario" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#1a1a1a;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="45" y="185" width="100" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="wipgate" value="WIP-gate&#10;¿hay tareas a medias?&#10;→ el usuario decide&#10;qué hacer con ellas" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#1a1a1a;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="185" y="175" width="160" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="triaje" value="TRIAJE&#10;(1 línea, el&#10;usuario puede&#10;corregirlo)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#1a1a1a;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="385" y="160" width="130" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="ep1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6c8ebf;strokeWidth=2;" parent="1" source="pedido" target="wipgate" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ep2" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6c8ebf;strokeWidth=2;" parent="1" source="wipgate" target="triaje" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ajuste" value="AJUSTE (color, texto, valor)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#1a1a1a;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="580" y="75" width="180" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="ajustefluj" value="cambio directo → verify quick ✅" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontColor=#1a1a1a;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="800" y="75" width="220" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="fix" value="FIX (bug, crash)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#1a1a1a;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="580" y="145" width="180" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="fixflujo" value="test que reproduce (ROJO) → fix → sabotage check → verify fix ✅" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontColor=#1a1a1a;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="800" y="145" width="420" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="feature" value="FEATURE (vista, endpoint, lógica)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#1a1a1a;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="580" y="225" width="180" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="et1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#82b366;strokeWidth=2;" parent="1" source="triaje" target="ajuste" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="et2" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#d79b00;strokeWidth=2;" parent="1" source="triaje" target="fix" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="et3" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6c8ebf;strokeWidth=2;" parent="1" source="triaje" target="feature" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ea1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#82b366;" parent="1" source="ajuste" target="ajustefluj" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ef1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#d79b00;" parent="1" source="fix" target="fixflujo" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="entrevista" value="1. ENTREVISTA&#10;pregunta hasta&#10;agotar dudas ↔ 👤" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontColor=#1a1a1a;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="580" y="320" width="140" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="contrato" value="2. CONTRATO&#10;criterios verificables +&#10;comando de verificación&#10;(ANTES de codear)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontColor=#1a1a1a;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="760" y="320" width="160" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="loop" value="3. LOOP AUTÓNOMO&#10;codear → verify.sh&#10;⟳ hasta VERDE&#10;(duda → pregunta, no asume)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#1a1a1a;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="960" y="320" width="170" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="reviewfresco" value="4. REVIEWER FRESCO&#10;lee diff + criterios&#10;(artefactos, no relatos)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#1a1a1a;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="1170" y="320" width="160" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="cierre" value="5. CIERRE&#10;archiva + registra&#10;lo aprendido" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#1a1a1a;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="1170" y="440" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="seg" value="🔒 AUDITORÍA SEGURIDAD&#10;revisor fresco · lentes OWASP&#10;+ herramientas (si toca&#10;auth/input/queries)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#1a1a1a;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="950" y="445" width="185" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="segflecha" value="antes de commitear" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;fontColor=#5b3a73;fontSize=9;labelBackgroundColor=#ffffff;" parent="1" source="seg" target="cierre" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="uinote" value="si hay UI: screenshot de la app&#10;+ clonar apartado de referencia" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f6ff;strokeColor=#6c8ebf;fontColor=#1f4e79;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="950" y="400" width="190" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="efe1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6c8ebf;strokeWidth=2;" parent="1" source="feature" target="entrevista" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="efe2" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6c8ebf;strokeWidth=2;" parent="1" source="entrevista" target="contrato" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="efe3" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6c8ebf;strokeWidth=2;" parent="1" source="contrato" target="loop" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="efe4" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6c8ebf;strokeWidth=2;" parent="1" source="loop" target="reviewfresco" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="efe5" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6c8ebf;strokeWidth=2;" parent="1" source="reviewfresco" target="cierre" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="gate" value="🔒 HOOK STOP: el agente NO PUEDE declarar nada terminado con la verificación en rojo (es un script, no una opinión)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#1a4d1a;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="23" y="442" width="900" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="membanda" value="MEMORIA COMPARTIDA (en git — cualquier compañero o sesión nueva retoma desde acá)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#7a5c00;fontSize=12;fontStyle=1;verticalAlign=top;spacingTop=8;" parent="1" vertex="1">
+                    <mxGeometry x="105" y="540" width="1240" height="170" as="geometry"/>
+                </mxCell>
+                <mxCell id="mem1" value="feature_list.json&#10;―――&#10;SOLO trabajo vivo&#10;(criterios, estados,&#10;bloqueos)" style="shape=note;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3902e;fontColor=#1a1a1a;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="145" y="580" width="170" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="mem2" value="progress/current/&#10;―――&#10;UN handoff POR FEATURE:&#10;estado, decisiones, próximo paso&#10;(lo carga el hook al abrir sesión;&#10;2 devs no se pisan)" style="shape=note;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3902e;fontColor=#1a1a1a;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="355" y="580" width="200" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="mem3" value="progress/archive/ + INDEX&#10;―――&#10;historial: qué se hizo,&#10;cuándo, con qué commit" style="shape=note;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3902e;fontColor=#1a1a1a;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="595" y="580" width="190" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="mem4" value="docs/lessons.md&#10;―――&#10;trampas técnicas,&#10;contratos, gotchas" style="shape=note;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3902e;fontColor=#1a1a1a;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="825" y="580" width="170" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="mem5" value="skill design-system&#10;―――&#10;qué es lindo y qué no&#10;(cada rechazo del usuario&#10;se vuelve regla)" style="shape=note;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3902e;fontColor=#1a1a1a;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="1035" y="580" width="180" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="me1" value="alta / estados" style="endArrow=open;html=1;dashed=1;strokeColor=#b3902e;fontColor=#7a5c00;fontSize=9;labelBackgroundColor=#ffffff;" parent="1" source="contrato" target="mem1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="me2" value="si se corta la sesión / cupo" style="endArrow=open;html=1;dashed=1;strokeColor=#b3902e;fontColor=#7a5c00;fontSize=9;labelBackgroundColor=#ffffff;" parent="1" source="loop" target="mem2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="me3" value="al cerrar" style="endArrow=open;html=1;dashed=1;strokeColor=#b3902e;fontColor=#7a5c00;fontSize=9;labelBackgroundColor=#ffffff;" parent="1" source="cierre" target="mem3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="me4" value="lo aprendido" style="endArrow=open;html=1;dashed=1;strokeColor=#b3902e;fontColor=#7a5c00;fontSize=9;labelBackgroundColor=#ffffff;" parent="1" source="cierre" target="mem4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="me5" value="" style="endArrow=open;html=1;dashed=1;strokeColor=#b3902e;" parent="1" source="cierre" target="mem5" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="clave" value="LA CLAVE: un solo agente (no pierde información ni asume en silencio) + verificación por scripts (no se aprueba solo) + memoria en git (el equipo comparte todo)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#1a4d1a;fontSize=12;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="105" y="740" width="1240" height="50" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

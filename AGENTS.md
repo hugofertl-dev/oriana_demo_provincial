@@ -1,0 +1,34 @@
+# AGENTS.md — ORIANA (demo provincial)
+
+> Espejo corto del harness para cualquier agente de código (estándar agents.md).
+> La fuente de verdad de reglas es `CLAUDE.md`; este archivo no lo duplica, apunta.
+
+## Orientación rápida
+
+1. Leé `CLAUDE.md` (reglas duras + triaje).
+2. Leé `progress/current/*.md` (qué estaba pasando — un handoff por feature a medias).
+3. `feature_list.json` = trabajo vivo. `progress/archive/INDEX.md` = historial.
+4. `docs/lessons.md` = trampas conocidas del proyecto. Leelo antes de tocar
+   integraciones/contratos.
+
+## Verificación
+
+- `scripts/verify.sh quick|fix|full` — gate mecánico. Nada se declara terminado
+  sin el nivel correspondiente en verde.
+- `scripts/sabotage_check.sh` — para fixes: sin el fix, el test debe fallar.
+
+## Flujo por nivel de tarea
+
+- **Ajuste** (color/texto/valor): directo + `verify.sh quick` + línea en history.
+- **Fix**: test rojo primero → fix → `verify.sh fix`.
+- **Feature**: entrevista de requisitos (criterios EARS + comando de verificación
+  ANTES de implementar) → implementar en loop hasta verde → review con contexto
+  fresco (diff + criterios, no relatos) → archivar y registrar lecciones.
+
+## Reglas que rompen el build social del equipo si las ignorás
+
+- No commitear nunca sin pedido explícito del usuario.
+- No trabajar directo sobre: main, master.
+- Conocimiento nuevo del proyecto → archivos del repo, no memoria local.
+- Al cerrar una feature: actualizar `feature_list.json`, archivar en
+  `progress/archive/`, y registrar reglas aprendidas donde corresponda.

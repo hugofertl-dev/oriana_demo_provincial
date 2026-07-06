@@ -1,0 +1,12 @@
+# Configuración de Netlify para la demo de ORIANA
+# Publica los archivos estáticos y expone la función en /api/tts
+
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+# El frontend llama a /api/tts -> lo redirige a la función serverless
+[[redirects]]
+  from = "/api/tts"
+  to = "/.netlify/functions/tts"
+  status = 200

@@ -1,0 +1,32 @@
+{
+  "_doc": {
+    "que_es": "Memoria VIVA del trabajo. Solo contiene trabajo activo o decidido. Lo terminado vive en progress/archive/ (ver INDEX.md).",
+    "estados": {
+      "planned": "aprobado para hacer, en backlog",
+      "in_progress": "en trabajo activo — MÁXIMO UNA a la vez",
+      "paused": "interrumpida con handoff escrito en progress/current.md",
+      "blocked": "trabada por dependencia externa o decisión pendiente (ver blockedBy/nota)",
+      "someday": "el usuario decidió posponerla sin fecha — no proponerla salvo que la pida",
+      "discarded": "descartada por decisión del usuario — no revivir"
+    },
+    "regla_wip": "Antes de arrancar trabajo nuevo: si hay in_progress/paused DEL DEV ACTUAL (campo owner), pedir decisión al usuario (WIP-gate). Las de otros devs no bloquean.",
+    "regla_cierre": "Al cerrar como done la entrada SE ELIMINA de este archivo y queda en progress/archive/<id>/."
+  },
+  "features": [
+    {
+      "id": "ejemplo-001",
+      "titulo": "BORRAR — entrada de ejemplo",
+      "status": "planned",
+      "prioridad": "media",
+      "criterios": [
+        "CUANDO el usuario guarda el formulario sin completar el campo X, EL SISTEMA DEBE mostrar el error Y sin enviar la petición."
+      ],
+      "verification": "scripts/verify.sh full && <comando específico, ej: flutter test test/x_test.dart>",
+      "archivos": ["src/..."],
+      "blockedBy": [],
+      "owner": "",
+      "creada": "AAAA-MM-DD",
+      "nota": ""
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+<mxfile host="app.diagrams.net" agent="claude" version="24.0.0">
+  <diagram name="Arnés actual" id="arnes-actual">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="700" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="lienzo" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cccccc;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="1120" height="640" as="geometry" />
+        </mxCell>
+
+        <mxCell id="title" value="ARNÉS ACTUAL — una tarea (aunque sea cambiar un color)" style="text;html=1;fontSize=18;fontStyle=1;align=center;fontColor=#1a1a1a;fillColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="200" y="25" width="760" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="usuario" value="👤&#10;Usuario" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#1a1a1a;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="150" width="90" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leader" value="LEADER&#10;(orquesta, no codea)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#1a1a1a;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="190" y="150" width="130" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="leadernote" value="relee 1 MB de feature_list.json&#10;+ CLAUDE.md gigante" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff0f0;strokeColor=#cc6666;fontColor=#990000;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="175" y="235" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="explorer" value="EXPLORER&#10;investiga" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#1a1a1a;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="150" width="110" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="implementer" value="IMPLEMENTER&#10;codea" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#1a1a1a;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="150" width="110" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="tester" value="TESTER&#10;tests" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#1a1a1a;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="150" width="110" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="reviewer" value="REVIEWER&#10;2 etapas" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#1a1a1a;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="940" y="150" width="110" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6c8ebf;strokeWidth=2;" edge="1" parent="1" source="usuario" target="leader">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="handoff ⚠" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#cc0000;strokeWidth=2;fontColor=#990000;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="leader" target="explorer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="handoff ⚠" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#cc0000;strokeWidth=2;fontColor=#990000;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="explorer" target="implementer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="handoff ⚠" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#cc0000;strokeWidth=2;fontColor=#990000;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="implementer" target="tester">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="handoff ⚠" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#cc0000;strokeWidth=2;fontColor=#990000;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="tester" target="reviewer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="rechazo → vuelve atrás (hasta 3 veces)" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#cc0000;strokeWidth=1;dashed=1;fontColor=#990000;fontSize=10;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;entryX=0.5;entryY=0;" edge="1" parent="1" source="reviewer" target="implementer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ctx1" value="contexto desde CERO&#10;no puede preguntar al usuario" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff0f0;strokeColor=#cc6666;fontColor=#990000;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="385" y="90" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx2" value="contexto desde CERO&#10;no puede preguntar → ASUME" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff0f0;strokeColor=#cc6666;fontColor=#990000;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="562" y="90" width="146" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx3" value="tests que&#10;nunca fallan ✓✓" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff0f0;strokeColor=#cc6666;fontColor=#990000;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="760" y="90" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx4" value="checklist en prosa&#10;→ se marca verde solo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff0f0;strokeColor=#cc6666;fontColor=#990000;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="932" y="90" width="126" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f1" value="explore_*.md" style="shape=note;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#1a1a1a;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="410" y="290" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="f2" value="implement_*.md" style="shape=note;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#1a1a1a;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="590" y="290" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="f3" value="test_*.md" style="shape=note;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#1a1a1a;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="770" y="290" width="90" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="f4" value="review_*.md&#10;+ veredictos JSON" style="shape=note;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#1a1a1a;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="945" y="290" width="105" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="fe1" style="endArrow=open;html=1;dashed=1;strokeColor=#666666;" edge="1" parent="1" source="explorer" target="f1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="fe2" style="endArrow=open;html=1;dashed=1;strokeColor=#666666;" edge="1" parent="1" source="implementer" target="f2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="fe3" style="endArrow=open;html=1;dashed=1;strokeColor=#666666;" edge="1" parent="1" source="tester" target="f3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="fe4" style="endArrow=open;html=1;dashed=1;strokeColor=#666666;" edge="1" parent="1" source="reviewer" target="f4"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="fnote" value="outputs literales completos pasados de agente en agente = contexto inflado" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff0f0;strokeColor=#cc6666;fontColor=#990000;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="470" y="345" width="460" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="builds" value="🐢 Al cierre: 3 builds completos (web + apk + ios) por CADA tarea" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#660000;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="190" y="400" width="860" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="problemas" value="POR QUÉ DUELE&#10;&#10;• El MISMO circuito para cambiar un color que para una feature entera&#10;• 5 contextos nuevos + 4 handoffs por tarea → lento, caro, y cada handoff PIERDE información (teléfono descompuesto)&#10;• Los subagentes no pueden hablar con el usuario → cuando dudan, asumen&#10;• La verificación es prosa que lee un LLM → tiende a aprobarse sola; los tests se escriben para pasar&#10;• Memoria de 1 MB con 209 tareas muertas adentro → quema el cupo de contexto en cada turno" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#660000;fontSize=12;align=left;spacing=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="190" y="465" width="860" height="160" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
