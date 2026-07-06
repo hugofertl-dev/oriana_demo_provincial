@@ -1,6 +1,10 @@
 # Local Netlify folder
 .netlify
 
+# Secrets locales (API keys de ElevenLabs, etc.) — NUNCA commitear
+.env
+.env.*
+
 # Dependencies (netlify-cli, jsdom — installed with --no-save)
 node_modules/
 

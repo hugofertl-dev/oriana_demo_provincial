@@ -41,7 +41,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         text,
         model_id: EL_MODEL,
-        voice_settings: { stability, similarity_boost: 0.75, style, use_speaker_boost: true }
+        voice_settings: { stability, similarity_boost: 0.50, style, use_speaker_boost: true }
       })
     });
     if (!r.ok) {
