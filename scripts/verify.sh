@@ -10,7 +10,7 @@
 #
 # ── CONFIGURACIÓN POR PROYECTO ──────────────────────────────────────────────
 LINT_CMD="bash scripts/syntax_check.sh"   # node --check + JS inline + py_compile + invariante HTML
-TEST_CMD=""                               # sin suite de tests automatizada (demo estática)
+TEST_CMD="node test/reclamos.test.js"     # tests jsdom (requiere: npm install)
 BUILD_CMD=""                              # sin paso de build (sitio estático)
 SRC_DIRS="index.html oriana-mobile.html oriana-demo.html api netlify oriana-proxy.py"
 

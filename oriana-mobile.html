@@ -353,6 +353,17 @@
       <p class="lead">Tus turnos y gestiones activas.</p>
       <div id="turnosList"></div>
       <button class="chip solid" style="margin-top:8px" onclick="goChat('Quiero sacar un turno en el hospital')">+ Sacar un turno nuevo</button>
+      <button class="chip" style="margin-top:8px" onclick="show('reclamos')">📣 Mis reclamos</button>
+    </div>
+  </div>
+
+  <!-- ===== MIS RECLAMOS ===== -->
+  <div class="screen hidden" id="screen-reclamos">
+    <div class="hdr plain"><div class="htitle">Mis reclamos</div></div>
+    <div class="panel">
+      <p class="lead">Tus reclamos y su estado.</p>
+      <div id="reclamosList"></div>
+      <button class="chip solid" style="margin-top:8px" onclick="goChat('Quiero hacer un reclamo')">+ Hacer un reclamo nuevo</button>
     </div>
   </div>
 
@@ -509,13 +520,14 @@ const DB = {
   turnos_agenda:["Mié 8/07 · 09:30","Mié 8/07 · 11:00","Jue 9/07 · 08:15","Jue 9/07 · 15:40","Vie 10/07 · 10:20"],
   turnos_activos:[
     {hospital:"Hospital Central Provincial", esp:"Clínica médica", cuando:"Vie 10/07 · 10:20", estado:"Confirmado"}
-  ]
+  ],
+  reclamos:[]
 };
 
 /* ============================================================
    NAVEGACIÓN
    ============================================================ */
-const screens = ["login","home","chat","turnos","cerca","perfil","ninos","linda","evento"];
+const screens = ["login","home","chat","turnos","reclamos","cerca","perfil","ninos","linda","evento"];
 document.querySelectorAll(".navbtn").forEach(b=>{
   b.onclick=()=>show(b.dataset.screen);
 });
@@ -523,10 +535,11 @@ function show(name){
   document.querySelectorAll(".navbtn").forEach(b=>b.classList.toggle("active",b.dataset.screen===name));
   screens.forEach(s=>document.getElementById("screen-"+s).classList.toggle("hidden",s!==name));
   const comp=document.getElementById("composer"); if(comp) comp.style.display = name==="chat"?"block":"none";
-  const tb=document.getElementById("tabbar"); if(tb) tb.classList.toggle("hidden", !(name==="home"||name==="turnos"||name==="linda"));
+  const tb=document.getElementById("tabbar"); if(tb) tb.classList.toggle("hidden", !(name==="home"||name==="turnos"||name==="reclamos"||name==="linda"));
   if(name==="home" && typeof renderHome==="function") renderHome();
   if(name==="linda" && typeof renderLinda==="function") renderLinda();
   if(name==="turnos") renderTurnos();
+  if(name==="reclamos") renderReclamos();
   if(name==="cerca") renderCerca(currentKind);
   if(name==="perfil") renderPerfil();
   if(name==="ninos" && ninosLog.children.length===0) ninosWelcome();
@@ -760,6 +773,12 @@ function handle(text){
   const t=norm(text);
   typing(()=>{
     if(/\bturno|sacar .*turno|reservar|agendar|saco un turno/.test(t)) return startTurno();
+    // --- RECLAMOS (antes que hospital/policía/turno-cercano para no colisionar) ---
+    if((/luz|electric|el[eé]ctric|tension|apag[oó]n|medidor/.test(t)) && !/arterial|presi[oó]n/.test(t) && /(reclam|queja|corte|sin|baja|problema|no (tengo|hay|anda|funciona|llega)|se (corto|fue|corta)|bajon)/.test(t)) return startReclamo("elec");
+    // OJO: 'maltrat/destrat' y 'problema' NO van acá — colisionan con la línea 144/violencia y con "hospital más cercano".
+    // El trato/maltrato en hospital lo captura matchProblemaHosp YA dentro del flujo. 'denunc' cubre "denunciar problemas/demoras".
+    if((/reclam|queja|denunc|demor|mala atenci|no me atendi|no me atiend|falta de atenci|mal atendi/.test(t)) && /(hospital|guardia|salud|m[eé]dic|atenci|atendi|clinic|sala|enfermer)/.test(t)) return startReclamo("hosp");
+    if(/reclam|queja|protest/.test(t)) return RX_RECLAMO_OUT.test(t) ? reclamoFueraAlcance() : startReclamo(null);
     if((/hospital|guardia|salud|medic|clinic|atencion/.test(t)) && /cerca|cercano|mas|proxim|donde|ubica|zona/.test(t)) return startLoc("hospital");
     if(/polic|comisar|911|robo|asalto|denunc|patrull/.test(t)) return startLoc("policia");
     if(/hospital|guardia/.test(t)) return startLoc("hospital");
@@ -783,6 +802,7 @@ function flowDispatch(text){
   }
   if(flow.type==="turno") return turnoStep(text);
   if(flow.type==="loc") return locStep(text);
+  if(flow.type==="reclamo") return reclamoStep(text);
 }
 
 function greet(){
@@ -791,6 +811,7 @@ function greet(){
       {label:"🗓️ Sacar un turno", send:"Quiero sacar un turno"},
       {label:"🏥 Hospital más cercano", send:"¿Cuál es el hospital más cercano?"},
       {label:"🚓 Policía más cercana", send:"Necesito la policía más cercana"},
+      {label:"📣 Hacer un reclamo", send:"Quiero hacer un reclamo"},
       {label:"💜 Necesito ayuda / apoyo", send:"Necesito ayuda con una situación de violencia"}
     ]),"Hola María. ¿En qué te doy una mano hoy?");
 }
@@ -800,6 +821,7 @@ function fallback(){
       {label:"🗓️ Turnos", send:"Quiero sacar un turno"},
       {label:"📍 Cerca mío", send:"¿Cuál es el hospital más cercano?"},
       {label:"💳 Mis beneficios", send:"Ver mis beneficios sociales"},
+      {label:"📣 Hacer un reclamo", send:"Quiero hacer un reclamo"},
       {label:"💜 Línea de ayuda", send:"Necesito ayuda con una situación de violencia"}
     ]),"Puedo ayudarte con turnos, ubicaciones, beneficios y acompañamiento.");
 }
@@ -917,6 +939,197 @@ function turnoStep(text){
   }
 }
 
+/* ---- RECLAMOS (slot-filling con ticket; clonado del flujo de turnos) ---- */
+// Temas de reclamo FUERA del alcance actual (respuesta educada, sin ticket).
+const RX_RECLAMO_OUT=/basura|residuo|agua|cloaca|desag[üu]e|bache|calle|vereda|alumbrado|sem[aá]foro|poda|[aá]rbol|ruido|transporte|colectivo|bondi|micro|impuesto|\btasa\b|patente|multa|tr[aá]nsito|animal|perro|plaza|espacio verde|barrido|internet|tel[eé]fono|gas\b/;
+
+function nuevoTicketId(sub){
+  const pref = sub==="elec" ? "ELEC" : "HOSP";
+  return pref+"-"+(4801+DB.reclamos.length);
+}
+function matchTipoElec(text){
+  const t=norm(text);
+  if(/baja|tension|bajon|poca|debil|fluctu|va y viene|intermit/.test(t)) return "Baja tensión";
+  if(/corte|total|sin luz|apag|no (tengo|hay) luz|se (corto|fue|corta)|nada de luz/.test(t)) return "Corte total de luz";
+  return null;
+}
+function matchProblemaHosp(text){
+  const t=norm(text);
+  if(/demor|espera|tard|cola|horas|lento/.test(t)) return "Demora en la atención";
+  if(/no me atendi|falta de atenci|no atend|sin atenci|no hay medic|nadie me atend/.test(t)) return "Falta de atención";
+  if(/trato|maltrat|destrat|mal atendi|grosero|mala forma|falta de respeto/.test(t)) return "Trato inadecuado";
+  if(/otro|otra|distinto|diferente/.test(t)) return "Otro";
+  return null;
+}
+// Dirección del reclamo eléctrico (carga libre, dentro de Misiones):
+// se exige localidad + dirección; no se valida contra una lista de localidades.
+function esLocalidadValida(s){ return /[a-záéíóúñ]{3,}/i.test((s||"")); }
+function esDireccionValida(s){ s=(s||"").trim(); return s.length>=4 && /\d/.test(s); }
+function tipoElecChips(){ return [{label:"Corte total de luz",send:"Corte total"},{label:"Baja tensión / bajones",send:"Baja tensión"}]; }
+function problemaHospChips(){ return [{label:"Demora en la atención",send:"Demora en la atención"},{label:"Falta de atención",send:"Falta de atención"},{label:"Trato inadecuado",send:"Trato inadecuado"},{label:"Otro",send:"Otro"}]; }
+function desdeChips(){ return [{label:"Hace unas horas",send:"Hace unas horas"},{label:"Desde ayer",send:"Desde ayer"},{label:"Hace varios días",send:"Hace varios días"}]; }
+
+function reclamoFueraAlcance(){
+  return pushBot(`Gracias por escribirme 🙏. Todavía <strong>no cuento con la información</strong> para gestionar ese tipo de reclamo — sigo aprendiendo para poder ayudarte con más temas. Te agradezco la comprensión 💛.<br><br>Por ahora puedo tomar reclamos de:`+
+    chipRow([
+      {label:"⚡ Luz: corte o baja tensión",send:"Reclamo por corte o baja tensión de luz"},
+      {label:"🏥 Hospital público",send:"Reclamo por atención en un hospital público"}
+    ]),
+    "Gracias por escribirme. Todavía no cuento con la información para gestionar ese reclamo. Sigo aprendiendo y te agradezco la comprensión. Por ahora puedo tomar reclamos de luz o de hospitales públicos.");
+}
+
+function startReclamo(sub){
+  if(sub==="elec"){
+    flow={type:"reclamo", sub:"elec", step:"tipo", data:{}, tries:0};
+    return pushBot(`Lamento el inconveniente con la luz ⚡. Registremos tu reclamo. ¿Qué está pasando?`+
+      chipRow(tipoElecChips()),
+      "Registremos tu reclamo de luz. ¿Es un corte total o baja tensión?");
+  }
+  if(sub==="hosp"){
+    flow={type:"reclamo", sub:"hosp", step:"hospital", data:{}, tries:0};
+    return pushBot(`Lamento lo que pasó 🏥. Registremos tu reclamo. ¿En qué hospital fue?`+
+      chipRow(hospChips()),
+      "Registremos tu reclamo. ¿En qué hospital fue?");
+  }
+  // Tema no especificado -> ofrecer los dos temas disponibles.
+  return pushBot(`¡Te ayudo a hacer un reclamo! 📣 ¿Sobre cuál de estos temas es?`+
+    chipRow([
+      {label:"⚡ Luz: corte o baja tensión",send:"Reclamo por corte o baja tensión de luz"},
+      {label:"🏥 Hospital público",send:"Reclamo por atención en un hospital público"}
+    ]),
+    "¿Sobre qué tema es el reclamo? Puedo tomar reclamos de luz o de hospitales públicos.");
+}
+
+function resumenReclamo(sub, d){
+  if(sub==="elec"){
+    return `Revisá tu reclamo antes de confirmarlo:`+
+      `<div class="card"><h4>⚡ Reclamo — Servicio eléctrico</h4>`+
+      `<div class="row"><span>Tipo</span><b>${esc(d.tipo)}</b></div>`+
+      `<div class="row"><span>Localidad</span><b>${esc(d.localidad)}</b></div>`+
+      `<div class="row"><span>Dirección</span><b>${esc(d.direccion)}</b></div>`+
+      `<div class="row"><span>Desde</span><b>${esc(d.desde)}</b></div>`+
+      `<div class="row"><span>Solicitante</span><b>${DB.ciudadano.nombre}</b></div></div>`;
+  }
+  return `Revisá tu reclamo antes de confirmarlo:`+
+    `<div class="card"><h4>🏥 Reclamo — Hospital público</h4>`+
+    `<div class="row"><span>Hospital</span><b>${esc(d.hospital.nombre)}</b></div>`+
+    `<div class="row"><span>Problema</span><b>${esc(d.problema)}</b></div>`+
+    `<div class="row"><span>Detalle</span><b>${esc(d.desc)}</b></div>`+
+    `<div class="row"><span>Solicitante</span><b>${DB.ciudadano.nombre}</b></div></div>`;
+}
+
+function reclamoConfirm(t){
+  if(isNo(t)){
+    flow=null;
+    return typing(()=>pushBot("Sin problema, no registré nada. ¿Querés hacer otra cosa?"+
+      chipRow([{label:"Empezar de nuevo",send:"Quiero hacer un reclamo"},{label:"Volver",send:"hola"}]),
+      "Sin problema, no registré nada."));
+  }
+  if(isYes(t)){
+    const d=flow.data, sub=flow.sub;
+    const id=nuevoTicketId(sub);
+    const titulo = sub==="elec" ? `${d.tipo} — ${d.localidad}` : `${d.problema} — ${d.hospital.nombre}`;
+    const resumen = sub==="elec" ? `${d.direccion} · Desde: ${d.desde}` : d.desc;
+    DB.reclamos.push({id, tipo:sub, titulo, resumen, estado:"En gestión", detalle:d});
+    flow=null;
+    const ico = sub==="elec" ? "⚡" : "🏥";
+    return typing(()=>pushBot(`¡Listo, María! 🎉 Registré tu reclamo. Tu número de ticket es <strong>${id}</strong>.`+
+      `<div class="card"><div class="row"><span>${ico} ${esc(titulo)}</span><span class="badge a">En gestión</span></div>`+
+      `<div class="row"><span>Ticket</span><b>${id}</b></div></div>`+
+      `<div class="bubble hint" style="margin-top:8px">Lo agregué a "Mis reclamos". Te avisaré cuando haya novedades.</div>`+
+      chipRow([{label:"Ver mis reclamos",send:"ver reclamos"},{label:"Algo más",send:"hola"}]),
+      `Listo María, registré tu reclamo. Tu número de ticket es ${id}. Te avisaré cuando haya novedades.`));
+  }
+  return typing(()=>pushBot("¿Confirmo el reclamo? Respondé <strong>sí</strong> o <strong>no</strong>."+
+    chipRow([{label:"✅ Sí, confirmar",send:"confirmar",solid:true},{label:"No, cancelar",send:"cancelar"}]),
+    "¿Confirmo el reclamo? Respondé sí o no."));
+}
+
+function reclamoStep(text){
+  const t=norm(text);
+  const s=flow.step;
+  if(flow.sub==="elec"){
+    if(s==="tipo"){
+      const tipo=matchTipoElec(text);
+      if(!tipo) return typing(()=>pushBot(`¿Es un <strong>corte total</strong> o <strong>baja tensión</strong>? Elegí una opción 🙏`+
+        chipRow(tipoElecChips()),"¿Es un corte total o baja tensión?"));
+      flow.data.tipo=tipo; flow.step="localidad";
+      // Dirección de carga libre (sin chips) y dentro de Misiones: primero la localidad.
+      return typing(()=>pushBot(`Anotado: <strong>${esc(tipo)}</strong>. ¿En qué <strong>localidad de Misiones</strong> está el problema? Escribila, por favor.`,
+        "¿En qué localidad de Misiones está el problema? Escribila, por favor."));
+    }
+    if(s==="localidad"){
+      const loc=(text||"").trim();
+      if(!esLocalidadValida(loc)) return typing(()=>pushBot(`Necesito la <strong>localidad de Misiones</strong> donde ocurre. Escribila, por favor (ej: Posadas, Oberá, Eldorado).`,
+        "Necesito la localidad de Misiones. Escribila, por favor."));
+      flow.data.localidad=loc; flow.step="direccion";
+      return typing(()=>pushBot(`Perfecto, <strong>${esc(loc)}</strong>. ¿Cuál es la <strong>dirección</strong>? Escribí calle y número.`,
+        "¿Cuál es la dirección? Escribí calle y número."));
+    }
+    if(s==="direccion"){
+      const dir=(text||"").trim();
+      if(!esDireccionValida(dir)) return typing(()=>pushBot(`Para ubicar bien el reclamo necesito <strong>calle y número</strong> (ej: Av. Uruguay 1234).`,
+        "Necesito la calle y el número, por favor."));
+      flow.data.direccion=dir; flow.step="desde";
+      return typing(()=>pushBot(`Anotado. ¿<strong>Desde cuándo</strong> venís con el problema?`+
+        chipRow(desdeChips()),"¿Desde cuándo venís con el problema?"));
+    }
+    if(s==="desde"){
+      const desde=(text||"").trim();
+      if(desde.length<2) return typing(()=>pushBot(`¿Desde cuándo? Podés elegir una opción o escribirlo.`+
+        chipRow(desdeChips()),"¿Desde cuándo?"));
+      flow.data.desde=desde; flow.step="confirm";
+      return typing(()=>pushBot(resumenReclamo("elec",flow.data)+
+        chipRow([{label:"✅ Confirmar reclamo",send:"confirmar",solid:true},{label:"No, cancelar",send:"cancelar"}]),
+        "¿Confirmo el reclamo?"));
+    }
+    if(s==="confirm") return reclamoConfirm(t);
+  }
+  if(flow.sub==="hosp"){
+    if(s==="hospital"){
+      const h=matchHospital(text);
+      if(!h) return typing(()=>pushBot(`No reconocí ese hospital 🤔. Elegí uno de estos:`+
+        chipRow(hospChips()),"No reconocí ese hospital. Elegí uno de estos."));
+      flow.data.hospital=h; flow.step="problema";
+      return typing(()=>pushBot(`<strong>${h.nombre}</strong>. ¿Qué problema tuviste?`+
+        chipRow(problemaHospChips()),"¿Qué problema tuviste?"));
+    }
+    if(s==="problema"){
+      const p=matchProblemaHosp(text);
+      if(!p) return typing(()=>pushBot(`Elegí el <strong>tipo de problema</strong> 🙏`+
+        chipRow(problemaHospChips()),"Elegí el tipo de problema."));
+      flow.data.problema=p; flow.step="desc";
+      return typing(()=>pushBot(`Entiendo. Contame <strong>brevemente qué pasó</strong> y lo dejo registrado.`,
+        "Contame brevemente qué pasó."));
+    }
+    if(s==="desc"){
+      const desc=(text||"").trim();
+      if(desc.length<3) return typing(()=>pushBot(`Contame un poco más para dejar constancia, por favor 🙏`,
+        "Contame un poco más, por favor."));
+      flow.data.desc=desc; flow.step="confirm";
+      return typing(()=>pushBot(resumenReclamo("hosp",flow.data)+
+        chipRow([{label:"✅ Confirmar reclamo",send:"confirmar",solid:true},{label:"No, cancelar",send:"cancelar"}]),
+        "¿Confirmo el reclamo?"));
+    }
+    if(s==="confirm") return reclamoConfirm(t);
+  }
+}
+
+function renderReclamos(){
+  const el=document.getElementById("reclamosList"); if(!el) return;
+  el.innerHTML="";
+  if(DB.reclamos.length===0){
+    el.innerHTML=`<div class="benefit"><div class="ico">📣</div><div class="info"><h4>No tenés reclamos</h4><p>Generá uno hablando con ORIANA.</p></div></div>`;
+    return;
+  }
+  DB.reclamos.forEach(r=>{
+    const ico = r.tipo==="elec" ? "⚡" : "🏥";
+    el.innerHTML+=`<div class="benefit"><div class="ico">${ico}</div>`+
+      `<div class="info"><h4>${esc(r.titulo)}</h4><p>Ticket ${r.id}${r.resumen?` · ${esc(r.resumen)}`:""}</p></div>`+
+      `<div class="amt"><span class="badge a">${esc(r.estado)}</span></div></div>`;
+  });
+}
+
 /* ---- CERCANÍA (pide y valida el barrio antes de responder) ---- */
 function findBarrio(text){
   const t=norm(text);
@@ -1004,6 +1217,7 @@ handle=function(text){
   if(text==="__ninos"){ show("ninos"); return; }
   if(text==="ver mi perfil"||text==="ver perfil completo"){ show("perfil"); return; }
   if(text==="ver turnos"){ show("turnos"); return; }
+  if(text==="ver reclamos"||text==="ver mis reclamos"){ show("reclamos"); return; }
   if(text==="ver todos los hospitales"){ show("cerca"); switchKind("hospital"); return; }
   if(text==="ver todas las comisarías"){ show("cerca"); switchKind("policia"); return; }
   if(text==="911"){ typing(()=>pushBot("🚨 <strong>Emergencias: 911</strong>. Si es una urgencia médica marcá <strong>107</strong>. Si estás en peligro, la Comisaría de la Mujer atiende al <strong>144</strong>. ¿Querés que te muestre la más cercana?"+chipRow([{label:"Sí, mostrame",send:"Necesito la policía más cercana"}]),"Emergencias 911. Urgencia médica 107.")); return; }

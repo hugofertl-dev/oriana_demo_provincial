@@ -1,0 +1,14 @@
+{
+  "name": "oriana-demo-provincial",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Demo front-end de ORIANA (asistente provincial) + función serverless TTS.",
+  "scripts": {
+    "test": "node test/reclamos.test.js",
+    "dev": "netlify dev --offline"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1",
+    "netlify-cli": "^26.1.0"
+  }
+}
