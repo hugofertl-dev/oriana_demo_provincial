@@ -22,11 +22,11 @@ perfil/documentos, y acompañamiento por violencia de género (línea 144).
 - **`oriana-proxy.py`** — server local (solo stdlib). Sirve los HTML en `http://localhost:8787`
   y proxea POSTs a ElevenLabs inyectando el `xi-api-key` que manda el navegador. Da un origen
   seguro para que el permiso de micrófono persista y evita CORS en pruebas locales.
-- **`netlify/functions/tts.js`**, **`api/tts.js`** — proxies TTS serverless (Netlify y Vercel).
-  Leen `ELEVENLABS_API_KEY` + `ELEVENLABS_VOICE_ID` del entorno, aceptan `POST {text, stability?, style?}`
-  y devuelven `audio/mpeg`. La key nunca llega al navegador.
+- **`netlify/functions/tts.js`** — proxy TTS serverless (Netlify).
+  Lee `ELEVENLABS_API_KEY` + `ELEVENLABS_VOICE_ID` del entorno, acepta `POST {text, stability?, style?}`
+  y devuelve `audio/mpeg`. La key nunca llega al navegador.
 - **`netlify.toml`** — publica la raíz estática y redirige `/api/tts` → `/.netlify/functions/tts`.
-- **`COMO-PUBLICAR.md`** — guía de deploy (Netlify / Vercel), en español.
+- **`COMO-PUBLICAR.md`** — guía de deploy (Netlify), en español.
 
 ## Correr localmente
 

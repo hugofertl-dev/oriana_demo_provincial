@@ -20,11 +20,11 @@ espejo que se sirve como raíz del proxy local. Al editar, cambiar `index.html` 
 `oriana-demo.html` es una variante vieja/aparte — NO se sincroniza.
 
 ### La API key de ElevenLabs nunca va al cliente (2026-07-06)
-La voz usa la función serverless `/api/tts` (`netlify/functions/tts.js` y `api/tts.js`),
-que inyecta `ELEVENLABS_API_KEY`/`ELEVENLABS_VOICE_ID` del entorno. En `index.html`,
-`USE_SERVER_TTS=true` por defecto. Si faltan las env vars, la función responde 500 y la
-demo cae sola a la voz del navegador (`speechSynthesis`) — no se rompe. Deploy: cargar
-ambas env vars en Netlify/Vercel (ver `COMO-PUBLICAR.md`).
+La voz usa la función serverless `/api/tts` (`netlify/functions/tts.js`, redirigida en
+`netlify.toml`), que inyecta `ELEVENLABS_API_KEY`/`ELEVENLABS_VOICE_ID` del entorno. En
+`index.html`, `USE_SERVER_TTS=true` por defecto. Si faltan las env vars, la función responde
+500 y la demo cae sola a la voz del navegador (`speechSynthesis`) — no se rompe. Deploy: cargar
+ambas env vars en Netlify (ver `COMO-PUBLICAR.md`).
 
 ### No hay build; los tests corren con jsdom vía node (2026-07-06)
 Sitio 100% estático. `verify.sh` corre `scripts/syntax_check.sh` (node --check sobre las

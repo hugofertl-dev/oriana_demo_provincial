@@ -11,11 +11,9 @@ Vas a necesitar dos datos de tu cuenta ElevenLabs:
 - **API Key** (empieza con `sk_...`)
 - **Voice ID** de la voz argentina (My Voices → ⋯ → Copy Voice ID)
 
-Elegí UNA de las dos opciones.
-
 ---
 
-## Opción A — Netlify (recomendada)
+## Publicar en Netlify
 
 Netlify "Drop" (arrastrar archivos) **no** ejecuta funciones. Para que ande la voz
 por ElevenLabs necesitás deploy desde Git o con la CLI. La forma más simple:
@@ -43,21 +41,6 @@ Archivos que usa Netlify: `netlify.toml` y `netlify/functions/tts.js`.
 
 ---
 
-## Opción B — Vercel
-
-1. Instalá la CLI:  `npm install -g vercel`
-2. En la carpeta de la demo, ejecutá:  `vercel`  (creá el proyecto).
-3. Cargá las variables de entorno:
-   `vercel env add ELEVENLABS_API_KEY`
-   `vercel env add ELEVENLABS_VOICE_ID`
-   (pegá cada valor cuando lo pida; elegí los 3 entornos)
-4. Publicá:  `vercel --prod`
-5. Te da una URL `https://...vercel.app` para compartir.
-
-Vercel usa el archivo `api/tts.js` automáticamente (endpoint `/api/tts`).
-
----
-
 ## Probar que la voz anda
 - Abrí la URL publicada, tocá "Iniciar demo como María".
 - Mandá un **audio** (botón del micrófono). Si escuchás la voz de ElevenLabs, ✅.
@@ -74,5 +57,5 @@ Vercel usa el archivo `api/tts.js` automáticamente (endpoint `/api/tts`).
 - Si las variables de entorno no están cargadas, la función responde con error y la
   demo cae sola a la voz del navegador (no se rompe).
 - `oriana-proxy.py` ya no hace falta para producción (era solo para pruebas locales).
-- Los archivos de las funciones ya están creados: `netlify/functions/tts.js` (Netlify)
-  y `api/tts.js` (Vercel). Ambos leen `ELEVENLABS_API_KEY` y `ELEVENLABS_VOICE_ID`.
+- La función ya está creada: `netlify/functions/tts.js`. Lee `ELEVENLABS_API_KEY` y
+  `ELEVENLABS_VOICE_ID` de las variables de entorno de Netlify.

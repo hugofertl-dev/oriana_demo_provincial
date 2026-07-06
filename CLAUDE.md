@@ -8,7 +8,7 @@
 ## Proyecto
 
 - **Stack:** demo front-end estática (HTML + CSS + JS inline, sin framework/build) +
-  funciones serverless Node (`api/tts.js`, `netlify/functions/tts.js`) + proxy local Python.
+  función serverless Node (`netlify/functions/tts.js`) + proxy local Python.
 - **Comandos:** ver `scripts/verify.sh` (lint/test/build centralizados ahí).
 - **Arquitectura:** ver `docs/architecture.md` (motor de intenciones por regex, `DB` simulado,
   máquina de estados de flujo, voz STT/TTS). No copiar ese detalle acá.
