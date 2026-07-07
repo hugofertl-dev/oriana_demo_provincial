@@ -390,6 +390,8 @@
       <div class="home-hi">Hola,</div>
       <div class="home-name" id="homeName">María González</div>
       <button class="start-btn" id="startBtn">Presioná para empezar</button>
+      <p style="margin-top:16px;font-size:var(--fs-cap);color:var(--ink-medium);text-align:center;line-height:1.4">ORIANA usa IA y puede cometer errores</p>
+      <p style="margin-top:8px;font-size:11px;font-weight:var(--fw-semi);letter-spacing:1.5px;color:var(--ink-low);text-align:center">DEMO - MISIONES</p>
     </div>
   </div>
 
@@ -561,6 +563,23 @@
     </div>
   </div>
 
+  <!-- ===== PANEL PERMISO UBICACIÓN ===== -->
+  <div class="modal-bg" id="geoModal" onclick="if(event.target===this)closeGeoPanel()">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="geoModalTitle">
+      <div class="modal-h">
+        <h3 id="geoModalTitle">📍 Tu ubicación</h3>
+        <button class="modal-x" onclick="closeGeoPanel()" aria-label="Cerrar">✕</button>
+      </div>
+      <p class="modal-lead" id="geoLead"></p>
+      <div id="geoSteps"></div>
+      <div class="modal-foot">
+        <button class="btn-ghost" id="geoAddr" onclick="pedirDireccion()">Escribir mi dirección</button>
+        <button class="btn-solid" id="geoActivate" onclick="requestGeo()">Permitir ubicación</button>
+      </div>
+      <div class="modal-note" id="geoNote"></div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -588,22 +607,22 @@ const DB = {
     {ico:"🎓", nombre:"Beca Progresar", detalle:"En evaluación · Tomás (primaria)", monto:"$28.000", periodo:"por mes", estado:"Pendiente"}
   ],
   barrios:[
-    {nombre:"Centro", xy:[0,0]},
-    {nombre:"Villa Cabello", xy:[-3,2]},
-    {nombre:"Villa Sarita", xy:[2,-1.5]},
-    {nombre:"Itaembé Miní", xy:[-7,-1]}
+    {nombre:"Centro", xy:[0,0], ll:[-27.3666,-55.8956]},
+    {nombre:"Villa Cabello", xy:[-3,2], ll:[-27.3897,-55.9294]},
+    {nombre:"Villa Sarita", xy:[2,-1.5], ll:[-27.3781,-55.8836]},
+    {nombre:"Itaembé Miní", xy:[-7,-1], ll:[-27.4436,-55.9603]}
   ],
   hospitales:[
-    {nombre:"Hospital Escuela de Agudos Dr. Ramón Madariaga", dir:"Av. Marconi 3736 · Parque de la Salud, Posadas", xy:[-1.5,1.2], tel:"(0376) 444-3700", especialidades:["Clínica médica","Cardiología","Traumatología","Guardia 24h"], guardia:true},
-    {nombre:"Hospital Materno Neonatal", dir:"Av. Marconi s/n · Parque de la Salud, Posadas", xy:[-1.6,1.4], tel:"(0376) 444-3700", especialidades:["Obstetricia","Neonatología","Guardia 24h"], guardia:true},
-    {nombre:"Hospital de Pediatría Dr. Fernando Barreyro", dir:"Av. Mariano Moreno 110, Posadas", xy:[0.3,0.4], tel:"0800-444-3400", especialidades:["Pediatría","Vacunatorio","Guardia 24h"], guardia:true},
-    {nombre:"Hospital de Fátima Dr. René Favaloro", dir:"Barrio Fátima · zona sur, Posadas", xy:[1.5,-4.5], tel:"0800-444-3400", especialidades:["Clínica médica","Pediatría","Odontología","Guardia 24h"], guardia:true}
+    {nombre:"Hospital Escuela de Agudos Dr. Ramón Madariaga", dir:"Av. Marconi 3736 · Parque de la Salud, Posadas", xy:[-1.5,1.2], ll:[-27.4030,-55.9126], tel:"(0376) 444-3700", especialidades:["Clínica médica","Cardiología","Traumatología","Guardia 24h"], guardia:true},
+    {nombre:"Hospital Materno Neonatal", dir:"Av. Marconi s/n · Parque de la Salud, Posadas", xy:[-1.6,1.4], ll:[-27.4037,-55.9133], tel:"(0376) 444-3700", especialidades:["Obstetricia","Neonatología","Guardia 24h"], guardia:true},
+    {nombre:"Hospital de Pediatría Dr. Fernando Barreyro", dir:"Av. Mariano Moreno 110, Posadas", xy:[0.3,0.4], ll:[-27.3660,-55.8935], tel:"0800-444-3400", especialidades:["Pediatría","Vacunatorio","Guardia 24h"], guardia:true},
+    {nombre:"Hospital de Fátima Dr. René Favaloro", dir:"Barrio Fátima · zona sur, Posadas", xy:[1.5,-4.5], ll:[-27.4185,-55.9290], tel:"0800-444-3400", especialidades:["Clínica médica","Pediatría","Odontología","Guardia 24h"], guardia:true}
   ],
   policia:[
-    {nombre:"Comisaría Seccional 1ra — Centro", dir:"Centro, Posadas", xy:[0.1,0.2], tel:"911", guardia:true},
-    {nombre:"Comisaría de la Mujer y la Familia", dir:"Centro, Posadas", xy:[-0.2,0.4], tel:"911 / 144", guardia:true},
-    {nombre:"Comisaría Seccional 8va — Villa Cabello", dir:"Villa Cabello, Posadas", xy:[-2.8,1.9], tel:"911", guardia:true},
-    {nombre:"Comisaría Seccional 16ta — Itaembé Miní", dir:"Itaembé Miní, Posadas", xy:[-6.8,-0.9], tel:"911", guardia:true}
+    {nombre:"Comisaría Seccional 1ra — Centro", dir:"Centro, Posadas", xy:[0.1,0.2], ll:[-27.3672,-55.8958], tel:"911", guardia:true},
+    {nombre:"Comisaría de la Mujer y la Familia", dir:"Centro, Posadas", xy:[-0.2,0.4], ll:[-27.3690,-55.8975], tel:"911 / 144", guardia:true},
+    {nombre:"Comisaría Seccional 8va — Villa Cabello", dir:"Villa Cabello, Posadas", xy:[-2.8,1.9], ll:[-27.3900,-55.9290], tel:"911", guardia:true},
+    {nombre:"Comisaría Seccional 16ta — Itaembé Miní", dir:"Itaembé Miní, Posadas", xy:[-6.8,-0.9], ll:[-27.4430,-55.9600], tel:"911", guardia:true}
   ],
   especialidades:["Pediatría","Clínica médica","Odontología","Cardiología","Traumatología","Obstetricia"],
   turnos_agenda:["Mié 8/07 · 09:30","Mié 8/07 · 11:00","Jue 9/07 · 08:15","Jue 9/07 · 15:40","Vie 10/07 · 10:20"],
@@ -972,7 +991,8 @@ function chipClick(text){ replyWithVoice=false; pushUser(text); smartHandle(text
    la DB simulada. Si /api/chat falla, cae al motor local (handle).
    ============================================================ */
 const USE_LLM = true;
-let llmDisabled = false;   // tras el primer fallo, la sesión sigue con el motor local
+let llmDisabled = false;   // tras varios fallos seguidos, la sesión sigue en modo básico (regex)
+let llmFailCount = 0;      // fallos consecutivos del LLM (transitorio vs persistente)
 let llmHistory = [];       // [{role:"user"|"assistant", content}]
 
 function llmContext(){
@@ -998,6 +1018,13 @@ function actionKey(a){ return [a.type,a.hospital,a.especialidad,a.horario,a.tipo
 function ejecutarAccion(a){
   if(!a || !a.type) return "";
   const key=actionKey(a);
+  if(a.type==="ubicacion_cercana"){
+    // El LLM delega: la app pide la ubicación real y calcula la distancia (no la calcula el modelo).
+    const k=a.kind==="policia"?"policia":"hospital";
+    flow={type:"loc", kind:k, step:"await"};
+    openGeoPanel(k);
+    return "";
+  }
   if(a.type==="crear_turno"){
     // Guarda: sin los 3 datos NO confirmar en silencio (evita "confirmado" fantasma).
     if(!(a.hospital && a.especialidad && a.horario)) return faltaDato;
@@ -1041,6 +1068,7 @@ async function llmHandle(text){
     const out=await res.json();
     if(typeof out.reply!=="string" || !out.reply.trim()) throw new Error("respuesta sin reply");
     t.remove();
+    llmFailCount=0;   // respondió bien: reseteamos el contador de fallos
     llmHistory.push({role:"assistant", content:out.reply});
     const extra = ejecutarAccion(out.action) +
       (Array.isArray(out.sugerencias)&&out.sugerencias.length
@@ -1050,10 +1078,22 @@ async function llmHandle(text){
     return true;
   }catch(err){
     t.remove();
-    console.warn("Chat LLM falló, sigo con el motor local:", err.message);
-    llmHistory.pop();          // ese turno lo va a responder el motor local
-    llmDisabled=true;
-    return false;
+    console.warn("Chat LLM error:", err.message);
+    llmHistory.pop();          // sacamos el turno que falló (se reintenta limpio)
+    llmFailCount++;
+    if(llmFailCount>=3){
+      // Fallo persistente (ej. sin LLM_API_KEY o servicio caído): degradar a modo básico y responder igual.
+      llmDisabled=true;
+      pushBot(`Estoy con problemas para conectarme 📡. Por ahora te sigo respondiendo en modo básico.`,
+        "Estoy con problemas para conectarme. Te sigo en modo básico.");
+      handle(text);
+    } else {
+      // Fallo transitorio: avisar y ofrecer reintentar (sin degradar ni deshabilitar el LLM).
+      pushBot(`Uy, tuve un problema de conexión 📡. ¿Lo intentamos de nuevo?`+
+        chipRow([{label:"🔄 Reintentar", send:text, solid:true}]),
+        "Uy, tuve un problema de conexión. ¿Lo intentamos de nuevo?");
+    }
+    return true;   // el error ya se manejó acá; smartHandle no debe caer al regex
   }
 }
 
@@ -1063,11 +1103,11 @@ async function llmHandle(text){
 let llmBusy=false; const llmQueue=[];
 function smartHandle(text){
   if(text.startsWith("__")){ handle(text); return; }          // atajos internos (__ninos, __tele)
+  if(flow){ handle(text); return; }                           // flujo regex activo (ej. dirección del geo): lo maneja el motor local
   if(!USE_LLM || llmDisabled){ handle(text); return; }
   if(llmBusy){ llmQueue.push(text); return; }
   llmBusy=true;
-  llmHandle(text)
-    .then(ok=>{ if(!ok) handle(text); })
+  llmHandle(text)   // maneja éxito, error transitorio (aviso + reintentar) y degradación internamente
     .finally(()=>{ llmBusy=false; if(llmQueue.length) smartHandle(llmQueue.shift()); });
 }
 
@@ -1075,11 +1115,9 @@ function smartHandle(text){
    MOTOR DE INTENCIONES (simulado)
    ============================================================ */
 let flow=null; // estado de flujo activo (turno | loc)
-let userBarrio="Centro";
 
 /* utilidades */
 function norm(s){ return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").trim(); }
-function distXY(a,b){ return Math.sqrt(Math.pow(a[0]-b[0],2)+Math.pow(a[1]-b[1],2)); }
 const RX_CANCEL=/^(cancelar|cancela|salir|olvidalo|olvidal|dejalo|dejar|basta|parar|pará|terminar|no quiero (seguir|nada)|ya no)\b/;
 
 /* interpretación flexible de sí / no */
@@ -1461,44 +1499,76 @@ function findBarrio(text){
       (short.length>3 && t.includes(short));
   });
 }
-function nearestList(kind, barrio){
+/* ---- Distancia geográfica real (haversine) + ubicación de referencia ---- */
+const POSADAS=[-27.3671,-55.8961];
+let geoRef=null;   // {point:[lat,lng], label, anchored} — última ubicación conocida
+// Registra en el historial del LLM lo que resuelve el motor local (para que la
+// conversación se infiera: el modelo "sabe" lo que la app mostró/hizo).
+function recordLLM(role, content){
+  if(typeof llmHistory!=="undefined" && USE_LLM && !llmDisabled) llmHistory.push({role, content});
+}
+function haversine(a,b){
+  const R=6371, r=x=>x*Math.PI/180;
+  const dLat=r(b[0]-a[0]), dLng=r(b[1]-a[1]);
+  const s=Math.sin(dLat/2)**2 + Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(s)));
+}
+function refActual(){ return (geoRef&&geoRef.point) ? geoRef.point : DB.barrios[0].ll; }
+function nearestList(kind, refPoint){
+  const ref=refPoint||refActual();
   const src=(kind==="hospital"?DB.hospitales:DB.policia);
-  return src.map(p=>({...p, dist:Math.max(0.3, Math.round(distXY(barrio.xy,p.xy)*10)/10)}))
+  return src.map(p=>({...p, dist:Math.max(0.2, Math.round(haversine(ref, p.ll)*10)/10)}))
             .sort((a,b)=>a.dist-b.dist);
 }
-function startLoc(kind){
-  flow={type:"loc", kind, step:"barrio"};
-  const que=kind==="hospital"?"el hospital más cercano":"la comisaría más cercana";
-  pushBot(`Con gusto te busco ${que} 📍. Para eso necesito saber <strong>en qué barrio o zona estás</strong>. ¿Desde dónde me escribís?`+
-    chipRow(DB.barrios.map(b=>({label:b.nombre,send:b.nombre}))),
-    `Con gusto. Para buscar ${que}, decime en qué barrio o zona estás.`);
-}
-function locStep(text){
-  if(flow.step!=="barrio") return;
+// Dirección tipeada → barrio/localidad de Misiones reconocido; si no, ancla Posadas.
+function refFromAddress(text){
   const b=findBarrio(text);
-  if(!b){
-    return typing(()=>pushBot(`Perdoná, no reconocí esa zona 🤔. Necesito tu barrio para buscar lo más cercano. ¿En cuál de estos estás?`+
-      chipRow(DB.barrios.map(b=>({label:b.nombre,send:b.nombre}))),
-      "Perdoná, no reconocí esa zona. ¿En cuál de estos barrios estás?"));
-  }
-  userBarrio=b.nombre;
-  const kind=flow.kind; flow=null;
-  const list=nearestList(kind,b);
-  const top=list[0];
+  if(b&&b.ll) return {point:b.ll, label:b.nombre, anchored:true};
+  return {point:POSADAS, label:null, anchored:true};
+}
+// Muestra el más cercano en el chat y deja geoRef seteado (para la pantalla Cerca).
+function mostrarCercano(kind, refPoint, originLabel, anchored){
+  geoRef={point:refPoint, label:originLabel||"Posadas", anchored:!!anchored};
+  const top=nearestList(kind, refPoint)[0];
   const icon=kind==="hospital"?"🏥":"🚓";
-  const label=kind==="hospital"?"hospital":"comisaría";
-  let html=`Perfecto, desde <strong>${b.nombre}</strong> ${kind==="hospital"?"el hospital":"la comisaría"} más cercano es:`+
-    `<div class="card"><h4>${icon} ${top.nombre}</h4>`+
-    `<div class="row"><span>Dirección</span><b>${top.dir}</b></div>`+
-    `<div class="row"><span>Distancia</span><b>${top.dist} km</b></div>`+
-    `<div class="row"><span>Teléfono</span><b>${top.tel}</b></div>`+
+  const desde = !anchored ? `desde <strong>tu ubicación</strong>`
+    : (originLabel ? `desde <strong>${esc(originLabel)}</strong> (aprox.)`
+                   : `tomando <strong>Posadas</strong> como referencia (aprox.)`);
+  let html=`Listo, ${desde} ${kind==="hospital"?"el hospital":"la comisaría"} más cercano es:`+
+    `<div class="card"><h4>${icon} ${esc(top.nombre)}</h4>`+
+    `<div class="row"><span>Dirección</span><b>${esc(top.dir)}</b></div>`+
+    `<div class="row"><span>Distancia</span><b>${top.dist} km${anchored?" aprox.":""}</b></div>`+
+    `<div class="row"><span>Teléfono</span><b>${esc(top.tel)}</b></div>`+
     (top.guardia?`<div class="row"><span>Guardia</span><span class="badge g">Abierta 24h</span></div>`:"")+
     `</div>`;
   html+=chipRow([
     {label:"📋 Ver todos",send:kind==="hospital"?"ver todos los hospitales":"ver todas las comisarías"},
     kind==="hospital"?{label:"🗓️ Sacar turno acá",send:"Quiero sacar un turno"}:{label:"📞 Emergencia 911",send:"911"}
   ]);
-  return typing(()=>pushBot(html, `Desde ${b.nombre}, ${kind==="hospital"?"el hospital":"la comisaría"} más cercano es ${top.nombre}, a ${top.dist} kilómetros.`));
+  recordLLM("assistant", `(La app le mostró que ${kind==="hospital"?"el hospital":"la comisaría"} más cercano es ${top.nombre}, en ${top.dir}, a ${top.dist} km${anchored?" aprox.":""}${top.guardia?", con guardia 24 h":""}.)`);
+  return typing(()=>pushBot(html, `${anchored?"Aproximadamente, ":""}${kind==="hospital"?"el hospital":"la comisaría"} más cercano es ${top.nombre}, a ${top.dist} kilómetros.`));
+}
+// Elegir hospital/comisaría cercano → abre el modal de ubicación (preserva flow.type=loc/kind).
+function startLoc(kind){
+  flow={type:"loc", kind, step:"await"};
+  const que=kind==="hospital"?"el hospital más cercano":"la comisaría más cercana";
+  pushBot(`Para darte ${que} 📍 necesito tu ubicación.`, `Para darte ${que} necesito tu ubicación.`);
+  openGeoPanel(kind);
+}
+// Maneja la dirección tipeada (cuando el usuario no comparte la ubicación).
+function locStep(text){
+  if(!flow || (flow.step!=="address" && flow.step!=="await")) return;
+  const kind=flow.kind, t=(text||"").trim();
+  if(t.length<3){
+    if(flow.step==="await") return;   // esperando el modal; ignorar ruido corto
+    return typing(()=>pushBot(`Necesito una dirección o localidad para estimar la distancia 📍. ¿Me la escribís?`,
+      "Necesito una dirección o localidad, por favor."));
+  }
+  closeGeoPanel();
+  const ref=refFromAddress(text);
+  flow=null;
+  recordLLM("user", "(Indiqué mi zona/dirección: "+t+".)");
+  return mostrarCercano(kind, ref.point, ref.label, true);
 }
 
 /* ---- BENEFICIOS ---- */
@@ -1632,6 +1702,70 @@ async function activateMic(){
   }
 }
 
+/* ---- PANEL PERMISO UBICACIÓN (mismo patrón que el micrófono) ---- */
+let _geoKind=null;
+const GEO_STEPS_HTML='<ol class="mic-steps"><li>Tocá el candado 🔒 o <b>aA</b> en la barra del navegador.</li><li>Entrá a <b>Ajustes del sitio</b> → <b>Ubicación</b>.</li><li>Poné <b>Permitir</b> y volvé a intentar.</li></ol>';
+function openGeoPanel(kind){
+  _geoKind = kind || _geoKind || "hospital";
+  const m=document.getElementById("geoModal"); if(!m) return;
+  renderGeoPanel("prompt"); m.classList.add("open");
+}
+function closeGeoPanel(){
+  const m=document.getElementById("geoModal"); if(m) m.classList.remove("open");
+  // Descartar el modal (✕/backdrop) sin compartir ubicación: soltar el flujo en espera
+  // para que el próximo mensaje vaya al LLM y no lo secuestre locStep como "dirección".
+  if(flow && flow.type==="loc" && flow.step==="await") flow=null;
+}
+function renderGeoPanel(state){
+  const lead=document.getElementById("geoLead"), steps=document.getElementById("geoSteps"),
+        act=document.getElementById("geoActivate"), addr=document.getElementById("geoAddr"), note=document.getElementById("geoNote");
+  if(!lead) return;
+  note.textContent=""; note.className="modal-note"; steps.innerHTML="";
+  if(state==="unsupported"){
+    lead.textContent="Este navegador no permite compartir la ubicación. Escribí tu dirección y te doy la distancia aproximada.";
+    act.style.display="none"; addr.textContent="Escribir mi dirección";
+  } else if(state==="denied"){
+    lead.textContent="La ubicación está bloqueada en este navegador. Para activarla:";
+    steps.innerHTML=GEO_STEPS_HTML; act.style.display=""; act.textContent="Reintentar"; addr.textContent="Mejor escribo la dirección";
+  } else {
+    lead.textContent="Para darte el más cercano necesito tu ubicación. No se guarda; solo se usa para calcular la distancia.";
+    act.style.display=""; act.textContent="Permitir ubicación"; addr.textContent="Escribir mi dirección";
+  }
+}
+function requestGeo(){
+  const note=document.getElementById("geoNote");
+  if(!navigator.geolocation){ renderGeoPanel("unsupported"); return; }
+  if(note){ note.textContent="Pidiendo ubicación…"; note.className="modal-note"; }
+  navigator.geolocation.getCurrentPosition(onGeoOk, onGeoErr, {enableHighAccuracy:false, timeout:10000, maximumAge:60000});
+}
+function onGeoOk(pos){
+  const kind=_geoKind||"hospital";
+  const userLL=[pos.coords.latitude, pos.coords.longitude];
+  const far=haversine(userLL, POSADAS)>100;   // umbral de anclaje: 100 km
+  const ref=far?POSADAS:userLL;
+  const note=document.getElementById("geoNote");
+  if(note){ note.textContent="Ubicación obtenida ✓"; note.className="modal-note ok"; }
+  flow=null;
+  recordLLM("user", "(Compartí mi ubicación para que me des el más cercano.)");
+  setTimeout(()=>{ closeGeoPanel(); mostrarCercano(kind, ref, far?null:"tu ubicación", far); }, 500);
+}
+function onGeoErr(err){
+  renderGeoPanel(err && err.code===1 ? "denied" : "prompt");
+  const note=document.getElementById("geoNote");
+  if(note){
+    note.textContent = (err&&err.code===1) ? "Bloqueaste el permiso. Seguí los pasos o escribí tu dirección." : "No se pudo obtener la ubicación. Reintentá o escribí tu dirección.";
+    note.className="modal-note err";
+  }
+}
+function pedirDireccion(){
+  const kind=_geoKind||"hospital";
+  closeGeoPanel();
+  flow={type:"loc", kind, step:"address"};
+  const que=kind==="hospital"?"el hospital":"la comisaría";
+  return typing(()=>pushBot(`Dale 📍. Escribime tu <strong>dirección o localidad</strong> (ej.: "Villa Cabello" o "Av. Uruguay 1234, Posadas") y te doy ${que} más cercano con la distancia aproximada.`,
+    `Escribime tu dirección o localidad y te doy ${que} más cercano.`));
+}
+
 function setupMic(btnId, targetInput, onFinal, composerId){
   const btn=document.getElementById(btnId);
   const comp=document.getElementById(composerId);
@@ -1695,10 +1829,12 @@ function switchKind(kind){
 }
 function renderCerca(kind){
   const el=document.getElementById("cercaList"); el.innerHTML="";
-  const barrio=DB.barrios.find(b=>b.nombre===userBarrio)||DB.barrios[0];
+  const ref=refActual();
+  const label=(geoRef&&geoRef.label)?geoRef.label:DB.barrios[0].nombre;
+  const aprox=geoRef&&geoRef.anchored;
   const lead=document.getElementById("cercaLead");
-  if(lead) lead.innerHTML=`Ubicación: <b>${barrio.nombre}</b> · Ordenado por distancia.`;
-  const list=nearestList(kind, barrio);
+  if(lead) lead.innerHTML=`Ubicación: <b>${esc(label)}</b>${aprox?" (aprox.)":""} · Ordenado por distancia.`;
+  const list=nearestList(kind, ref);
   list.forEach((p,i)=>{
     const cls=kind==="hospital"?"h":"p", ic=kind==="hospital"?"🏥":"🚓";
     el.innerHTML+=`<div class="place" onclick="goChat('${(kind==='hospital'?'Quiero sacar un turno en '+p.nombre:'Datos de '+p.nombre)}')">

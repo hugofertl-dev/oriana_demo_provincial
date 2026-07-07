@@ -111,6 +111,18 @@ real (se midió `documentElement.scrollWidth <= clientWidth`). Fix: capturar con
 y completo. Para manejar la app en el screenshot: inyectar un `<script>` con
 `window.typing=cb=>cb()` (typing síncrono) y `show("pantalla")` antes de capturar.
 
+### El chat tiene DOS motores: coordinar contexto entre LLM y regex (2026-07-07)
+El chat corre con el LLM (`smartHandle`→`llmHandle`→/api/chat) como primario y el motor regex
+(`handle`/`flow`) como fallback y para flujos client-side (geolocalización). Aprendizajes:
+(1) Lo que resuelve el motor regex/geo (ej. "el más cercano es X") NO lo ve el LLM salvo que lo
+registres en `llmHistory` → usar `recordLLM(role,content)` para que la conversación se infiera
+en el próximo turno. (2) Si el LLM debe DELEGAR algo a la app (ej. la ubicación real), que emita
+una `action` que el frontend intercepta (`ubicacion_cercana`→abre modal), NO que lo calcule el
+modelo. (3) Un flujo regex abierto desde el LLM (modal con `flow={type:loc,step:await}`) DEBE
+soltar `flow` al descartarse (`closeGeoPanel`), si no `smartHandle`'s `if(flow)` secuestra el
+próximo mensaje hacia el motor local. (4) Error del LLM: NO degradar a regex al primer fallo
+(da respuestas raras) — mostrar aviso de conexión + reintentar; degradar solo tras N fallos.
+
 ### API de Claude: sonnet-5 / output_config / thinking:disabled son válidos (2026-07-06)
 Al revisar `chat.js` pueden "sonar" inventados `claude-sonnet-5`, `output_config.format` y
 `thinking:{type:"disabled"}` — NO lo son (skill `claude-api`, estado 2026): Sonnet 5 existe y

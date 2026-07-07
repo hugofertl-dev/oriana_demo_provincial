@@ -36,6 +36,18 @@ const dom = new JSDOM(html, {
     window.scrollTo = () => {};
     window.matchMedia = window.matchMedia || (() => ({ matches: false, addEventListener() {}, addListener() {} }));
     window.URL.createObjectURL = () => "blob:stub";
+    // Stub de geolocalización (configurable por test vía window.__geoResult)
+    window.__geoResult = null;
+    Object.defineProperty(window.navigator, "geolocation", {
+      configurable: true,
+      value: {
+        getCurrentPosition(ok, err) {
+          const g = window.__geoResult;
+          if (g && g.ok) ok({ coords: g.ok });
+          else if (g && g.err) err({ code: g.err });
+        }
+      }
+    });
   }
 });
 
@@ -173,5 +185,58 @@ const nR = DB.reclamos.length;
 const incR = window.ejecutarAccion({ type: "crear_reclamo", tipo_reclamo: "elec", lugar: null, problema: null });
 check("crear_reclamo incompleto NO crea y pide el dato", DB.reclamos.length === nR && /falt[oó] un dato/i.test(incR));
 
-console.log("\n" + (FAIL === 0 ? "🟢" : "🔴") + ` reclamos.test: ${PASS} PASS, ${FAIL} FAIL`);
-process.exit(FAIL === 0 ? 0 : 1);
+// ── geo-cercania: ubicación real / dirección para hospital/comisaría cercano ──
+console.log("── geo-cercania: ubicación + distancia (haversine)");
+ev("geoRef=null");
+// 1) elegir "hospital más cercano" abre el modal de ubicación (y preserva flow loc/kind)
+reset(); window.startLoc("hospital");
+check("startLoc abre el modal de ubicación", doc.getElementById("geoModal").classList.contains("open"));
+check("startLoc preserva flow.type=loc/kind", flowState() && flowState().type === "loc" && flowState().kind === "hospital" && flowState().step === "await");
+// descartar el modal (✕/backdrop) suelta el flujo await → el próximo mensaje va al LLM, no a locStep
+window.closeGeoPanel();
+check("cerrar el modal sin compartir suelta el flujo await", flowState() == null);
+// 2) umbral híbrido 100 km: Posadas cerca (no ancla), Buenos Aires lejos (ancla)
+check("Posadas NO supera el umbral (usa ubicación real)", ev("haversine([-27.40,-55.91], POSADAS) > 100") === false);
+check("Buenos Aires SÍ supera el umbral (se ancla a Posadas)", ev("haversine([-34.60,-58.38], POSADAS) > 100") === true);
+// 3) mostrarCercano real desde una coord de Posadas → devuelve el más cercano con distancia
+window.getComputedStyle && (window.getComputedStyle = window.getComputedStyle || (()=>({})));
+reset(); window.mostrarCercano("hospital", [-27.3660, -55.8935], "tu ubicación", false);
+check("mostrarCercano deja geoRef seteado", ev("geoRef && geoRef.point") && ev("geoRef.anchored") === false);
+check("chat muestra un hospital con distancia en km", /km/.test(allText()) && /Hospital/i.test(lastBotHTML()));
+check("el más cercano a coord centro es el de Pediatría (Moreno)", /Barreyro|Pediatr/i.test(lastBotHTML()));
+// 4) permiso denegado → panel con instrucciones
+window.renderGeoPanel("denied");
+check("panel denegado explica cómo habilitar", /bloqueada/i.test(doc.getElementById("geoLead").textContent) && doc.getElementById("geoActivate").textContent === "Reintentar");
+// 5) dirección tipeada: localidad reconocida (Villa Cabello) → distancia desde ahí (aprox)
+ev("geoRef=null"); window.pedirDireccion();
+check("pedirDireccion pasa a paso 'address'", flowState() && flowState().step === "address");
+reset(); window.handle("Villa Cabello");
+check("dirección reconocida ancla a esa localidad", ev("geoRef && geoRef.label") === "Villa Cabello" && ev("geoRef.anchored") === true);
+check("muestra distancia aproximada", /aprox/i.test(lastBotHTML()) && /km/.test(lastBotHTML()));
+// 6) dirección NO reconocida → ancla Posadas
+window.pedirDireccion(); reset(); window.handle("calle inexistente 9999 zzz");
+check("dirección desconocida ancla a Posadas", ev("geoRef && geoRef.label") === "Posadas");
+// 7) requestGeo con permiso concedido (stub) → onGeoOk limpia el flujo
+ev("flow={type:'loc',kind:'hospital',step:'await'}; _geoKind='hospital'");
+window.__geoResult = { ok: { latitude: -27.40, longitude: -55.91 } };
+window.requestGeo();
+check("requestGeo (permitido) procesa la ubicación y cierra el flujo", flowState() == null);
+// 8) integración LLM: la action ubicacion_cercana abre el modal (no la calcula el modelo)
+ev("flow=null; geoRef=null"); window.closeGeoPanel();
+const outUC = window.ejecutarAccion({ type: "ubicacion_cercana", kind: "policia", hospital: null, especialidad: null, horario: null, tipo_reclamo: null, lugar: null, problema: null, descripcion: null });
+check("ejecutarAccion(ubicacion_cercana) abre el modal y no devuelve tarjeta", doc.getElementById("geoModal").classList.contains("open") && outUC === "");
+check("ejecutarAccion(ubicacion_cercana) setea flow loc/policia", flowState() && flowState().type === "loc" && flowState().kind === "policia");
+
+// ── chat-LLM: manejo de error de conexión (async — fetch stub rechaza) ────────
+(async () => {
+  console.log("── chat-LLM: error de conexión → aviso + reintentar (sin degradar)");
+  ev("llmDisabled=false; llmFailCount=0; llmHistory.length=0"); reset();
+  await window.llmHandle("hola");   // fetch stub rechaza → path de error
+  check("error transitorio muestra aviso de conexión + Reintentar", /problema de conexi[oó]n/i.test(lastBotHTML()) && /Reintentar/i.test(lastBotHTML()));
+  check("1 error NO deshabilita el LLM", ev("llmDisabled") === false);
+  await window.llmHandle("hola"); await window.llmHandle("hola");   // 2do y 3er fallo
+  check("3 fallos consecutivos → modo básico (llmDisabled)", ev("llmDisabled") === true && ev("llmFailCount") >= 3);
+
+  console.log("\n" + (FAIL === 0 ? "🟢" : "🔴") + ` reclamos.test: ${PASS} PASS, ${FAIL} FAIL`);
+  process.exit(FAIL === 0 ? 0 : 1);
+})();

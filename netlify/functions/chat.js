@@ -33,9 +33,10 @@ const OUTPUT_SCHEMA = {
         {
           type: "object",
           additionalProperties: false,
-          required: ["type", "hospital", "especialidad", "horario", "tipo_reclamo", "lugar", "problema", "descripcion"],
+          required: ["type", "kind", "hospital", "especialidad", "horario", "tipo_reclamo", "lugar", "problema", "descripcion"],
           properties: {
-            type: { type: "string", enum: ["crear_turno", "crear_reclamo", "derivar_acompanamiento"] },
+            type: { type: "string", enum: ["crear_turno", "crear_reclamo", "derivar_acompanamiento", "ubicacion_cercana"] },
+            kind: { anyOf: [{ type: "string", enum: ["hospital", "policia"] }, { type: "null" }] },
             hospital: { anyOf: [{ type: "string" }, { type: "null" }] },
             especialidad: { anyOf: [{ type: "string" }, { type: "null" }] },
             horario: { anyOf: [{ type: "string" }, { type: "null" }] },
@@ -59,7 +60,7 @@ MANDATO TERRITORIAL (OBLIGATORIO): estás en Misiones. TODOS los datos que das (
 TEMAS PERMITIDOS (únicos):
 1. Sacar un turno médico en hospitales públicos (flujo: hospital → especialidad → horario de la agenda → confirmación).
 2. Reclamos de luz/energía eléctrica (flujo: tipo de problema → localidad y dirección → desde cuándo → confirmación) y reclamos por atención en hospitales públicos (hospital → problema → descripción → confirmación).
-3. Hospitales y comisarías cercanas (con los datos de abajo; el barrio de referencia es el de la usuaria).
+3. Hospital o comisaría MÁS CERCANO/A: NO lo calcules vos ni digas distancias ni "según tu barrio". La app pide la ubicación REAL de la usuaria y calcula la distancia. Cuando pida el más cercano, respondé un reply corto tipo "Para darte el más cercano necesito tu ubicación 📍" y emití la acción ubicacion_cercana (kind "hospital" o "policia"). (Para info general de un hospital puntual sí podés dar los datos de abajo; el cálculo de cercanía lo hace la app.)
 4. Beneficios sociales cargados de la usuaria (solo informar los de abajo).
 5. Sus turnos y reclamos ya registrados (listalos si pregunta).
 6. Saludos y cortesía.
@@ -73,9 +74,12 @@ ACCIONES (campo "action" del JSON):
 - crear_turno: hospital (nombre EXACTO de los datos), especialidad (de la lista del hospital), horario (uno EXACTO de turnos_agenda).
 - crear_reclamo: tipo_reclamo "elec" (lugar = localidad y dirección, problema = tipo de corte/problema, descripcion = desde cuándo/detalle) o "hosp" (lugar = hospital exacto, problema, descripcion).
 - Cuando emitas crear_turno o crear_reclamo NO digas el número de ticket ni "ya lo registré con el número..." — la app lo genera y lo muestra; limitate a confirmar en tono cálido.
+- ubicacion_cercana: cuando la usuaria pide el hospital o la comisaría MÁS CERCANO/A. Poné kind "hospital" o "policia". El reply debe ser corto pidiendo la ubicación (no des distancias ni nombres de "el más cercano": eso lo resuelve la app con la ubicación real). Dejá "sugerencias" VACÍAS ([]) en este caso: la app ya muestra los botones de compartir ubicación / escribir dirección.
 - En cualquier otro caso: action = null.
 
 SUGERENCIAS: 2 o 3 respuestas cortas que la usuaria podría tocar como siguiente paso (ej.: "Sacar un turno", "Sí, confirmar", "Hospital más cercano"). Escribilas como las diría la usuaria.
+
+INFERENCIA POR CONTEXTO (importante): usá SIEMPRE toda la conversación previa. Si ya mostraste o mencionaste algo (por ej. el hospital más cercano que resolvió la app, una especialidad o un horario que la usuaria eligió, un reclamo en curso), tenelo presente e INFERÍ a partir de eso en vez de volver a preguntar lo ya sabido. Ejemplos: si recién le mostraste que el hospital más cercano es X y ahora pide un turno, ofrecé sacarlo en X ("¿Querés el turno en X que te mostré, o en otro?"); si ya dijo la especialidad, no la vuelvas a pedir. Las notas entre paréntesis en el historial (ej. "(Le mostré que el más cercano es…)") son contexto real de lo que pasó en la app: usalas.
 
 El campo "reply" NUNCA puede quedar vacío: siempre escribí una respuesta, incluso para lo fuera de tema (ahí va el mensaje de que todavía estás aprendiendo + retomar la consulta pendiente).
 
