@@ -78,14 +78,22 @@ texto largo (ej. "En gestión"), el badge queda pegado al borde derecho. Es comp
 heredado del componente original de turnos, no específico de reclamos. Si molesta, ajustar el
 layout de `.benefit`/`.amt` en el CSS (afecta a ambas pantallas por igual).
 
-### El endpoint /api/chat es un proxy LLM público SIN rate-limit (deuda) (2026-07-06)
-`netlify/functions/chat.js` proxea a Claude con `LLM_API_KEY` del entorno. Es público (CORS),
-sin auth ni rate-limit → un tercero puede quemar el presupuesto de la API key llamándolo en loop
-(vía `curl`; CORS solo frena navegadores de terceros, no scripts). Mitigado en costo POR REQUEST
-(tope body 40 KB, context 25 KB, history 16 msgs × 2000 chars, `max_tokens:1024`, `thinking:disabled`)
-pero NO en volumen. Pendiente: rate-limit por IP / edge. Lever parcial: setear `ALLOWED_ORIGIN`
-en Netlify (restringe CORS al dominio). Deploy: cargar `LLM_API_KEY` (y opcional `ALLOWED_ORIGIN`)
-en las env vars de Netlify. Ojo: `netlify/functions/tts.js` tiene el mismo patrón CORS `*`.
+### Rate-limit por IP en /api/chat y /api/tts con Upstash Redis (2026-07-07)
+Los endpoints LLM/TTS son públicos y pagos. El costo POR REQUEST ya estaba topado
+(body 40 KB, context 25 KB, history 16 msgs × 2000 chars, `max_tokens:1024`, `thinking:disabled`);
+faltaba el freno de VOLUMEN (un `curl` en loop quema el presupuesto; CORS no frena scripts).
+Solución (FASE 1 del PLAN_PRODUCCION): `netlify/functions/_ratelimit.js` — ventana fija por IP
+con Upstash Redis vía REST (`INCR` + `EXPIRE ... NX` en un pipeline atómico). Límites: chat 20/min,
+tts 40/min. Al pasarse devuelve **429** (el cliente ya lo maneja con "dame unos segundos" + Reintentar,
+index.html:1237). El prefijo `_` hace que Netlify NO trate el helper como endpoint (solo se importa).
+- **FAIL-OPEN a propósito**: sin las env vars, o si Upstash falla/timeoutea (1.5 s), la request PASA
+  y se loguea con `console.error`. El rate-limit ahorra presupuesto; la red final son los spending
+  limits de Anthropic/ElevenLabs. Nunca tira la demo por un problema del contador.
+- **IP detrás de Netlify**: `x-nf-client-connection-ip` (fallback primer hop de `x-forwarded-for`).
+- **Env vars** (Netlify → Site config → Environment variables): `UPSTASH_REDIS_REST_URL`,
+  `UPSTASH_REDIS_REST_TOKEN`, `ALLOWED_ORIGIN` (restringe CORS al dominio real; sin setear → `*`).
+  `tts.js` ya lee `ALLOWED_ORIGIN` (antes tenía `*` hardcodeado; unificado con chat.js).
+- Test: `test/ratelimit.test.js` (mockea fetch; cubre borde, fail-open, extracción de IP).
 
 ### No confiar en el `action` del LLM para gatear estado sin validar (2026-07-06)
 El chat-LLM devuelve `action` (crear_turno/crear_reclamo/...) que el frontend ejecuta contra la

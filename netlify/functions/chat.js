@@ -16,8 +16,12 @@
    ══════════════════════════════════════════════════════════════════ */
 
 const Anthropic = require("@anthropic-ai/sdk");
+const { checkRateLimit } = require("./_ratelimit");
 
 const MODEL = "claude-sonnet-5";
+// Tope de volumen por IP (ventana de 60 s). El endpoint es público y pago:
+// esto corta el abuso en loop sin molestar a un tester activo (~20 turnos/min).
+const RL_LIMIT = 20, RL_WINDOW = 60;
 
 // Respuesta SIEMPRE con este shape (output_config lo garantiza).
 const OUTPUT_SCHEMA = {
@@ -91,6 +95,11 @@ exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: cors(), body: "" };
   if (event.httpMethod !== "POST") return json(405, { error: "Método no permitido" });
 
+  // Rate-limit por IP ANTES de tocar el LLM (una request de más no debe costar tokens).
+  // Fail-open: si Upstash no está configurado o falla, deja pasar (ver _ratelimit.js).
+  const rl = await checkRateLimit(event, "chat", RL_LIMIT, RL_WINDOW);
+  if (!rl.allowed) return json(429, { error: "Demasiadas solicitudes, probá en unos segundos" }, { "Retry-After": String(rl.retryAfter) });
+
   const key = process.env.LLM_API_KEY;
   if (!key) { console.error("chat.js: falta LLM_API_KEY en el entorno"); return json(500, { error: "Servicio no disponible" }); }
 
@@ -152,13 +161,13 @@ function cors() {
   // Endpoint LLM pago: restringí el origen seteando ALLOWED_ORIGIN en Netlify
   // (ej: https://tu-sitio.netlify.app). Sin setear cae a "*" (no rompe el deploy).
   // NB: CORS solo frena abuso desde navegadores de terceros, no curl/servidor —
-  // el freno de volumen real es un rate-limit (pendiente, ver docs/lessons.md).
+  // el freno de volumen real es el rate-limit por IP (ver _ratelimit.js).
   return {
     "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "*",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS"
   };
 }
-function json(statusCode, obj) {
-  return { statusCode, headers: { ...cors(), "Content-Type": "application/json" }, body: JSON.stringify(obj) };
+function json(statusCode, obj, extraHeaders) {
+  return { statusCode, headers: { ...cors(), "Content-Type": "application/json", ...(extraHeaders || {}) }, body: JSON.stringify(obj) };
 }

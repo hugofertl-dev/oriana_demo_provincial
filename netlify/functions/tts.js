@@ -8,9 +8,14 @@
      ELEVENLABS_VOICE_ID  (id de la voz argentina)
    ══════════════════════════════════════════════════════════════════ */
 
+const { checkRateLimit } = require("./_ratelimit");
+
 // flash v2.5: ~75 ms de inferencia vs varios segundos del multilingual v2 (el
 // modelo "lento" de calidad). Si la voz argentina suena peor acá, volver atrás.
 const EL_MODEL = "eleven_flash_v2_5";
+// Tope de volumen por IP (60 s). Más holgado que chat: un turno de voz puede
+// pedir varios fragmentos, y el TTS es más barato que el LLM.
+const RL_LIMIT = 40, RL_WINDOW = 60;
 
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") {
@@ -19,6 +24,10 @@ exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return json(405, { error: "Método no permitido" });
   }
+
+  // Rate-limit por IP antes de pegarle a ElevenLabs (fail-open; ver _ratelimit.js).
+  const rl = await checkRateLimit(event, "tts", RL_LIMIT, RL_WINDOW);
+  if (!rl.allowed) return json(429, { error: "Demasiadas solicitudes, probá en unos segundos" }, { "Retry-After": String(rl.retryAfter) });
 
   const key = process.env.ELEVENLABS_API_KEY;
   const voice = process.env.ELEVENLABS_VOICE_ID;
@@ -66,13 +75,17 @@ exports.handler = async (event) => {
 };
 
 function cors() {
+  // Endpoint TTS pago: restringí el origen seteando ALLOWED_ORIGIN en Netlify
+  // (ej: https://tu-sitio.netlify.app). Sin setear cae a "*" (no rompe el deploy).
+  // Mismo patrón que chat.js. NB: CORS solo frena abuso desde navegadores de
+  // terceros, no curl/servidor — el freno de volumen real es el rate-limit.
   return {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "*",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS"
   };
 }
-function json(statusCode, obj) {
-  return { statusCode, headers: { ...cors(), "Content-Type": "application/json" }, body: JSON.stringify(obj) };
+function json(statusCode, obj, extraHeaders) {
+  return { statusCode, headers: { ...cors(), "Content-Type": "application/json", ...(extraHeaders || {}) }, body: JSON.stringify(obj) };
 }
 function num(v, d) { const n = Number(v); return Number.isFinite(n) ? n : d; }

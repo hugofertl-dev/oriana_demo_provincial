@@ -12,5 +12,23 @@
     "regla_wip": "Antes de arrancar trabajo nuevo: si hay in_progress/paused DEL DEV ACTUAL (campo owner), pedir decisión al usuario (WIP-gate). Las de otros devs no bloquean.",
     "regla_cierre": "Al cerrar como done la entrada SE ELIMINA de este archivo y queda en progress/archive/<id>/."
   },
-  "features": []
+  "features": [
+    {
+      "id": "rate-limit-apis",
+      "titulo": "FASE 1 — Rate-limit por IP (Upstash) + CORS unificado en /api/chat y /api/tts",
+      "status": "in_progress",
+      "criterios": [
+        "CUANDO una IP supera 20 req a /api/chat (o 40 a /api/tts) en 60s, EL SISTEMA DEBE responder 429 con CORS y sin llamar a Anthropic/ElevenLabs.",
+        "CUANDO una IP está bajo el límite, EL SISTEMA DEBE procesar la request como hoy.",
+        "CUANDO Upstash falla estando configurado (timeout/error/respuesta inesperada), EL SISTEMA DEBE dejar pasar (fail-open) y loguear con console.error. CUANDO las env vars están ausentes, DEBE dejar pasar en silencio (modo 'como hoy', sin ruido por request).",
+        "CUANDO responde 429, EL SISTEMA DEBE usar shape {error} + header Retry-After, para que el cliente lo lea como HTTP 429.",
+        "CUANDO /api/tts responde, EL SISTEMA DEBE emitir Access-Control-Allow-Origin desde ALLOWED_ORIGIN (unificado con chat.js), cayendo a * si no está seteado."
+      ],
+      "verification": "node test/ratelimit.test.js && scripts/verify.sh full",
+      "archivos": ["netlify/functions/_ratelimit.js", "netlify/functions/chat.js", "netlify/functions/tts.js", "test/ratelimit.test.js", "scripts/verify.sh", "docs/lessons.md"],
+      "blockedBy": [],
+      "owner": "Hugo",
+      "creada": "2026-07-07"
+    }
+  ]
 }
