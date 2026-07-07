@@ -889,7 +889,14 @@ async function speak(text, opts={}){
     const gen = USE_SERVER_TTS ? serverSpeak : elevenSpeak;
     const url=audioCache[clean] || await gen(clean);
     if(!ttsAudio) ttsAudio=new Audio();
-    ttsAudio.onended=()=>{ if(typeof micLog==="function") micLog("TTS ended"); if(opts.onEnd) opts.onEnd(); };  // DEBUG TEMPORAL mic
+    // Al terminar de hablar: descargar el <audio> YA, para que iOS empiece a
+    // desactivar la sesión de reproducción de inmediato (si queda cargada, la
+    // sesión persiste ~10-15 s y el dictado arranca sordo — bug del mic).
+    ttsAudio.onended=()=>{
+      if(typeof micLog==="function") micLog("TTS ended → libero sesión de audio");  // DEBUG TEMPORAL mic
+      try{ ttsAudio.removeAttribute("src"); ttsAudio.load(); }catch(e){}
+      if(opts.onEnd) opts.onEnd();
+    };
     ttsAudio.src=url;
     currentAudio=ttsAudio;
     if(typeof micLog==="function") micLog("TTS play() (ElevenLabs/server)");  // DEBUG TEMPORAL mic
@@ -1807,6 +1814,9 @@ function setupMic(btnId, targetInput, onFinal, composerId){
   if(rec){
     rec.lang="es-ES"; rec.interimResults=true; rec.continuous=false;
     rec.onstart=()=>{ micLog("onstart"); listening=true; btn.classList.add("on"); comp.classList.add("rec"); targetInput.placeholder="🎙️ Te escucho..."; };
+    rec.onaudiostart=()=>micLog("onaudiostart (iOS abrió la captura)");  // DEBUG TEMPORAL mic
+    rec.onsoundstart=()=>micLog("onsoundstart (detecta sonido)");        // DEBUG TEMPORAL mic
+    rec.onspeechstart=()=>micLog("onspeechstart (detecta habla)");       // DEBUG TEMPORAL mic
     rec.onresult=e=>{ let txt=""; for(const r of e.results) txt+=r[0].transcript; micLog("onresult: «"+txt.slice(0,40)+"»"); targetInput.value=txt; autoGrow(targetInput); };
     rec.onerror=(e)=>{ micLog("onerror: "+(e&&e.error)); if(e && (e.error==="not-allowed"||e.error==="service-not-allowed")){ _micStream=null; openMicPanel(startDictation); } };
     rec.onend=()=>{ micLog("onend (input="+targetInput.value.trim().length+" chars)"); listening=false; btn.classList.remove("on"); comp.classList.remove("rec");
