@@ -889,12 +889,14 @@ async function speak(text, opts={}){
     const gen = USE_SERVER_TTS ? serverSpeak : elevenSpeak;
     const url=audioCache[clean] || await gen(clean);
     if(!ttsAudio) ttsAudio=new Audio();
-    ttsAudio.onended=opts.onEnd||null;
+    ttsAudio.onended=()=>{ if(typeof micLog==="function") micLog("TTS ended"); if(opts.onEnd) opts.onEnd(); };  // DEBUG TEMPORAL mic
     ttsAudio.src=url;
     currentAudio=ttsAudio;
+    if(typeof micLog==="function") micLog("TTS play() (ElevenLabs/server)");  // DEBUG TEMPORAL mic
     await ttsAudio.play();   // si iOS lo bloquea (no primeado), rechaza -> catch -> voz navegador
   }catch(err){
     console.warn("ElevenLabs falló, uso voz del navegador:", err.message);
+    if(typeof micLog==="function") micLog("TTS FALLBACK navegador: "+err.message);  // DEBUG TEMPORAL mic
     if(opts.onError) opts.onError(err);
     browserSpeak(clean);
   }
@@ -1747,6 +1749,25 @@ function pedirDireccion(){
     `Escribime tu dirección o localidad y te doy ${que} más cercano.`));
 }
 
+// ── DEBUG TEMPORAL mic (quitar al cerrar el fix): overlay visible con ?micdebug=1 ──
+const MIC_DEBUG = /[?&]micdebug/.test(location.search);
+function micLog(m){
+  if(!MIC_DEBUG) return;
+  let d=document.getElementById("micdbg");
+  if(!d){
+    d=document.createElement("div"); d.id="micdbg";
+    d.style.cssText="position:absolute;top:0;left:0;right:0;z-index:99;background:rgba(0,0,0,.82);color:#7CFC7C;font:10px/1.5 monospace;padding:4px 8px;max-height:45%;overflow:auto;white-space:pre-wrap";
+    d.onclick=()=>{ d.textContent=""; };
+    (document.querySelector(".phone")||document.body).appendChild(d);
+  }
+  const ts=new Date().toISOString().slice(14,23);
+  d.textContent+=`[${ts}] ${m}\n`; d.scrollTop=1e9;
+}
+if(MIC_DEBUG){
+  window.addEventListener("error",e=>micLog("JS ERROR: "+e.message));
+}
+// ── fin DEBUG TEMPORAL ──
+
 function setupMic(btnId, targetInput, onFinal, composerId){
   const btn=document.getElementById(btnId);
   const comp=document.getElementById(composerId);
@@ -1764,24 +1785,28 @@ function setupMic(btnId, targetInput, onFinal, composerId){
       },1600);
       return;
     }
-    try{ rec.start(); }catch(e){}
+    micLog("rec.start() →");
+    try{ rec.start(); micLog("rec.start() OK (sin excepción)"); }
+    catch(e){ micLog("rec.start() EXCEPCIÓN: "+e.name+" — "+e.message); }
   }
 
   if(rec){
     rec.lang="es-ES"; rec.interimResults=true; rec.continuous=false;
-    rec.onstart=()=>{ listening=true; btn.classList.add("on"); comp.classList.add("rec"); targetInput.placeholder="🎙️ Te escucho..."; };
-    rec.onresult=e=>{ let txt=""; for(const r of e.results) txt+=r[0].transcript; targetInput.value=txt; autoGrow(targetInput); };
-    rec.onerror=(e)=>{ if(e && (e.error==="not-allowed"||e.error==="service-not-allowed")){ _micStream=null; openMicPanel(startDictation); } };
-    rec.onend=()=>{ listening=false; btn.classList.remove("on"); comp.classList.remove("rec");
+    rec.onstart=()=>{ micLog("onstart"); listening=true; btn.classList.add("on"); comp.classList.add("rec"); targetInput.placeholder="🎙️ Te escucho..."; };
+    rec.onresult=e=>{ let txt=""; for(const r of e.results) txt+=r[0].transcript; micLog("onresult: «"+txt.slice(0,40)+"»"); targetInput.value=txt; autoGrow(targetInput); };
+    rec.onerror=(e)=>{ micLog("onerror: "+(e&&e.error)); if(e && (e.error==="not-allowed"||e.error==="service-not-allowed")){ _micStream=null; openMicPanel(startDictation); } };
+    rec.onend=()=>{ micLog("onend (input="+targetInput.value.trim().length+" chars)"); listening=false; btn.classList.remove("on"); comp.classList.remove("rec");
       targetInput.placeholder="Escribí o tocá el micrófono para hablar...";
       const t=targetInput.value.trim(); if(t){ replyWithVoice=true; onFinal(t,false); }  // habló -> responde por voz
     };
   }
 
   btn.onclick=async()=>{
+    micLog("tap mic (listening="+listening+", ttsAudio="+(ttsAudio?(ttsAudio.paused?"paused":"PLAYING"):"null")+", synth="+(("speechSynthesis" in window)&&speechSynthesis.speaking?"SPEAKING":"idle")+")");
     primeAudio();   // desbloquea el audio de iOS mientras esto es un gesto de usuario
-    if(listening){ if(rec) rec.stop(); return; }
+    if(listening){ micLog("→ ya escuchando: rec.stop()"); if(rec) rec.stop(); return; }
     const st=await micPermissionState();
+    micLog("micPermissionState = "+st);
     if(st==="granted"){ startDictation(); return; }
     openMicPanel(startDictation);   // explica + dispara getUserMedia; si concede, arranca el dictado
   };
