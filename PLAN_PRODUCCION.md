@@ -53,10 +53,12 @@ ni límite de volumen. Compartir la URL ampliamente sin esto es regalar la API k
 
 ## FASE 2 — Telemetría (enterarse cuando le falla a otro)
 
-> **Ítem 5 IMPLEMENTADO y cerrado** (feature `telemetria-log`): captura global en el
+> **FASE 2 COMPLETA.** Ítem 5 cerrado (feature `telemetria-log`): captura global en el
 > cliente → `/api/log` propio, persistido en Upstash, GET de lectura con token por header.
-> Ítem 6 (visibilidad server) cubierto en parte: `/api/log` hace `console.error` (panel
-> Netlify) + histórico consultable en Upstash. Ítem 7 (smoke test) PENDIENTE.
+> Ítem 6 (visibilidad server) cubierto: `/api/log` hace `console.error` (panel Netlify) +
+> histórico consultable en Upstash. Ítem 7 HECHO: `scripts/smoke.sh <url> [--light]`
+> (home + POST reales a /api/chat y /api/tts; `--light` sin costo). Validado contra el
+> deploy real (verde).
 
 Hoy no hay NINGÚN error tracking: si un tester tiene un crash en su dispositivo,
 la única forma de saberlo es que lo cuente. "Probar desde todos lados" solo sirve

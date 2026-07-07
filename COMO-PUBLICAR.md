@@ -28,22 +28,57 @@ por ElevenLabs necesitás deploy desde Git o con la CLI. La forma más simple:
 2. Instalá la CLI:  `npm install -g netlify-cli`
 3. Entrá a la carpeta de la demo (donde está `index.html`) en la terminal.
 4. Ejecutá:  `netlify deploy` (seguí los pasos, elegí crear un sitio nuevo).
-5. Cargá las variables de entorno:
-   `netlify env:set ELEVENLABS_API_KEY "tu_api_key"`
-   `netlify env:set ELEVENLABS_VOICE_ID "tu_voice_id"`
+5. Cargá las variables de entorno (ver la lista completa en **Variables de entorno**
+   más abajo), con `netlify env:set NOMBRE "valor"` por cada una.
 6. Publicá en producción:  `netlify deploy --prod`
 7. Te da una URL `https://...netlify.app` para compartir.
 
 ### O con GitHub
 1. Subí la carpeta a un repo de GitHub.
 2. En netlify.com → "Add new site" → "Import from Git" → elegí el repo.
-3. En Site settings → Environment variables, agregá:
-   - `ELEVENLABS_API_KEY`
-   - `ELEVENLABS_VOICE_ID`
-   - `LLM_API_KEY` (Anthropic, para el chat con IA)
+3. En Site settings → Environment variables, cargá las de la lista de abajo.
 4. Deploy. Listo.
 
-Archivos que usa Netlify: `netlify.toml` y `netlify/functions/tts.js`.
+Archivos que usa Netlify: `netlify.toml` y `netlify/functions/` (`tts.js`, `chat.js`,
+`log.js`, `_ratelimit.js`).
+
+---
+
+## Variables de entorno
+
+**Requeridas** (sin ellas la voz o el chat no andan):
+
+| Variable | Para qué |
+|---|---|
+| `LLM_API_KEY` | Chat con IA (clave de Anthropic). |
+| `ELEVENLABS_API_KEY` | Voz por servidor (clave de ElevenLabs). |
+| `ELEVENLABS_VOICE_ID` | Id de la voz argentina. |
+
+**Opcionales** (la demo funciona sin ellas — *fail-open* — pero conviene cargarlas si
+vas a compartir el link ampliamente):
+
+| Variable | Para qué |
+|---|---|
+| `ALLOWED_ORIGIN` | Restringe CORS al dominio real, ej. `https://tu-sitio.netlify.app` (sin barra final). Sin setear → `*`. |
+| `UPSTASH_REDIS_REST_URL` | Rate-limit por IP + telemetría de errores (base Redis de Upstash, gratis). |
+| `UPSTASH_REDIS_REST_TOKEN` | Idem — token de la base Upstash (secreto). |
+| `LOG_READ_TOKEN` | Secreto (aleatorio ≥32 chars) para leer el log de errores: `curl -H "Authorization: Bearer <token>" <url>/api/log`. |
+
+Sin las `UPSTASH_*` no hay rate-limit ni se guardan los errores; sin `ALLOWED_ORIGIN`
+los endpoints aceptan cualquier origen. Detalle técnico en `docs/lessons.md`.
+
+---
+
+## Chequeo post-deploy (smoke test)
+Tras cada deploy, corré el smoke test para cazar un deploy roto o una env var faltante
+antes de descubrirlo en el celular:
+
+```bash
+scripts/smoke.sh https://TU-SITIO.netlify.app          # completo: home + POST reales (cuesta ~centavos)
+scripts/smoke.sh https://TU-SITIO.netlify.app --light  # gratis: home + routing (no detecta keys faltantes)
+```
+Verde = home OK + `/api/chat` responde con `{reply}` (LLM_API_KEY OK) + `/api/tts` devuelve
+audio (ELEVENLABS_* OK). Si algo sale rojo, el mensaje te dice qué env var falta.
 
 ---
 
