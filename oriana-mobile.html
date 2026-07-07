@@ -232,15 +232,7 @@
 
   /* ---------- LINDA (eventos) ---------- */
   #screen-linda{background:#fff;padding-bottom:88px}
-  .linda-top{position:sticky;top:0;z-index:8;background:#fff;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
-  .linda-icons{display:flex;align-items:center;gap:8px;margin-bottom:14px}
-  .lic{border:none;background:transparent;font-size:20px;color:var(--ink);cursor:pointer;width:38px;height:38px;
-    display:flex;align-items:center;justify-content:center;border-radius:11px}
-  .lic.sq{background:var(--primary-soft);font-size:16px}
-  .lic.av{background:#7d8b90;color:#fff;font-size:12px;font-weight:700;border-radius:50%}
-  .linda-brand{display:flex;align-items:center;gap:8px;margin-bottom:14px}
-  .linda-brand .lw2{font-size:27px;font-weight:800;letter-spacing:-.5px;color:var(--ink)}
-  .linda-filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+  .linda-filters{display:flex;gap:8px;overflow-x:auto;padding:0 16px 12px}
   .lf{white-space:nowrap;border:1.5px solid var(--line);background:#fff;color:var(--ink-soft);
     padding:9px 15px;border-radius:22px;font-size:13.5px;font-weight:600;cursor:pointer}
   .lf.active{border-color:var(--teal);background:var(--primary-soft);color:var(--teal-d)}
@@ -282,7 +274,6 @@
   .ev-desc{font-size:14px;line-height:1.6;color:var(--ink-soft);margin:14px 2px}
   .ev-actions{display:flex;gap:10px;margin-top:14px}
   .ev-actions button{flex:1;padding:14px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;border:1.5px solid var(--border)}
-  .ev-actions .primary{background:var(--teal);color:#fff;border-color:var(--teal)}
   .ev-actions .ghost{background:#fff;color:var(--teal-d)}
 
   /* ---------- MODAL ---------- */
@@ -503,20 +494,10 @@
 
   <!-- ===== LINDA (eventos) ===== -->
   <div class="screen hidden" id="screen-linda">
-    <div class="linda-top">
-      <div class="linda-icons">
-        <button class="lic" aria-label="Menú">☰</button>
-        <div style="flex:1"></div>
-        <button class="lic sq" aria-label="Categorías">▦</button>
-        <button class="lic sq" aria-label="Notificaciones">🔔</button>
-        <button class="lic av" aria-label="Perfil" onclick="show('perfil')">MG</button>
-      </div>
-      <div class="linda-brand"><span class="lw2">Eventos</span></div>
-      <div class="linda-filters">
-        <button class="lf active" data-filter="prox">Próximos Eventos</button>
-        <button class="lf" data-filter="fav">Favoritos</button>
-        <button class="lf" data-filter="mapa">Mapa 🗺️</button>
-      </div>
+    <div class="hdr plain"><div class="htitle">Eventos</div></div>
+    <div class="linda-filters">
+      <button class="lf active" data-filter="prox">Próximos Eventos</button>
+      <button class="lf" data-filter="fav">Favoritos</button>
     </div>
     <div class="mosaic" id="lindaBody"></div>
   </div>
@@ -2111,13 +2092,6 @@ let lindaFilter="prox";
 function renderLinda(){
   const el=document.getElementById("lindaBody");
   document.querySelectorAll(".lf").forEach(b=>b.classList.toggle("active",b.dataset.filter===lindaFilter));
-  if(lindaFilter==="mapa"){
-    el.classList.add("plain");
-    el.innerHTML=`<div style="height:220px;border-radius:16px;
-      background:linear-gradient(135deg,#cfe9ef,#9fd4dd);display:flex;align-items:center;justify-content:center;
-      font-size:40px">🗺️</div><p class="lead" style="margin-top:12px">Mapa de eventos cercanos — próximamente ubicará cada evento según tu zona.</p>`;
-    return;
-  }
   let lista=EVENTOS;
   if(lindaFilter==="fav") lista=EVENTOS.filter(e=>favs[e.id]);
   if(!lista.length){ el.classList.add("plain"); el.innerHTML=`<p class="lead" style="padding:24px 4px">Todavía no marcaste eventos como favoritos. Tocá el ♡ en cualquier evento.</p>`; return; }
@@ -2142,7 +2116,6 @@ function renderEvento(id){
       <p class="ev-desc">${e.desc}</p>
       <div class="ev-actions">
         <button class="ghost" onclick="toggleFav('${e.id}')">${favs[e.id]?'♥ En favoritos':'♡ Guardar'}</button>
-        <button class="primary" onclick="goChat('¿Cómo llego a ${e.lugar.replace(/'/g,'')}?')">🧭 Cómo llegar</button>
       </div>
     </div>`;
 }
