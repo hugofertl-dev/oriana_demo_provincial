@@ -824,6 +824,16 @@ let currentAudio = null;
 // el dictado (SpeechRecognition) arranca sordo durante ~15-60 s.
 let ttsCtx = null, ttsSrcNode = null;
 
+// Bloquear el teléfono durante un TTS deja el AudioContext "interrupted" (iOS) y
+// el resume() fuera de gesto puede no resolver nunca → ORIANA quedaría muda el
+// resto de la sesión. Al volver a foreground, ese ctx se descarta y se recrea solo.
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState==="visible" && ttsCtx && ttsCtx.state==="interrupted"){
+    try{ ttsCtx.close().catch(()=>{}); }catch(e){}
+    ttsCtx=null; ttsSrcNode=null;
+  }
+});
+
 // iOS bloquea reproducir audio fuera de un gesto de usuario. Reusamos UN solo
 // elemento <audio> y lo "desbloqueamos" (prime) con un clip silencioso durante
 // el toque del micrófono; después speak() reproduce sobre ese mismo elemento ya
@@ -886,7 +896,19 @@ async function webAudioPlay(url, opts={}){
   const AC=window.AudioContext||window.webkitAudioContext;
   if(!AC) throw new Error("sin WebAudio");
   if(!ttsCtx) ttsCtx=new AC();
-  if(ttsCtx.state!=="running") await ttsCtx.resume();
+  if(ttsCtx.state!=="running"){
+    // resume() con timeout de carrera: si el ctx quedó clavado (p.ej. "interrupted"
+    // tras pantalla bloqueada), se descarta y se recrea en vez de colgar la voz.
+    const ok=await Promise.race([
+      ttsCtx.resume().then(()=>true).catch(()=>false),
+      new Promise(r=>setTimeout(()=>r(false),1200))
+    ]);
+    if(!ok || ttsCtx.state!=="running"){
+      try{ ttsCtx.close().catch(()=>{}); }catch(e){}
+      ttsCtx=new AC();
+      if(ttsCtx.state!=="running") await ttsCtx.resume().catch(()=>{});
+    }
+  }
   const ab=await (await fetch(url)).arrayBuffer();
   const buf=await new Promise((res,rej)=>ttsCtx.decodeAudioData(ab,res,rej));  // forma callback: Safari
   if(ttsSrcNode){ try{ ttsSrcNode.onended=null; ttsSrcNode.stop(); }catch(e){} }
@@ -1702,6 +1724,12 @@ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 // a getUserMedia() sobre https. El panel (openMicPanel) explica y dispara ese pedido
 // de forma explícita, y muestra instrucciones para reactivarlo si queda bloqueado.
 let _micStream=null, _micOnGranted=null;
+let _micGranted=false;   // señal de permiso concedido (NO usar _micStream: se libera tras cada dictado)
+// Apaga los tracks del mic: sin esto el indicador de grabación del SO (naranja en
+// iOS, notificación en Android) queda prendido TODA la sesión.
+function releaseMic(){
+  if(_micStream){ try{ _micStream.getTracks().forEach(t=>t.stop()); }catch(e){} _micStream=null; }
+}
 
 const MIC_STEPS_HTML =
   '<ol class="mic-steps">'+
@@ -1714,7 +1742,7 @@ const MIC_STEPS_HTML =
 
 async function micPermissionState(){
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return "unsupported";
-  if(_micStream) return "granted";
+  if(_micGranted) return "granted";
   if(navigator.permissions && navigator.permissions.query){
     try{ const p=await navigator.permissions.query({name:"microphone"}); return p.state; }catch(e){}
   }
@@ -1757,7 +1785,7 @@ async function activateMic(){
   note.textContent="Pidiendo permiso…"; note.className="modal-note";
   try{
     const s=await navigator.mediaDevices.getUserMedia({audio:true});
-    _micStream=s;
+    _micStream=s; _micGranted=true;
     note.textContent="Micrófono activado ✓"; note.className="modal-note ok";
     const cb=_micOnGranted; _micOnGranted=null;
     setTimeout(()=>{ closeMicPanel(); if(cb) cb(); }, 600);
@@ -1859,6 +1887,7 @@ function setupMic(btnId, targetInput, onFinal, composerId){
       try{
         const old=_micStream;
         _micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+        _micGranted=true;
         if(old) old.getTracks().forEach(tr=>tr.stop());
         const track=_micStream.getAudioTracks()[0];
         if(track.muted){
@@ -1874,13 +1903,31 @@ function setupMic(btnId, targetInput, onFinal, composerId){
   }
 
   if(rec){
-    rec.lang="es-ES"; rec.interimResults=true; rec.continuous=false;
-    rec.onstart=()=>{ listening=true; btn.classList.add("on"); comp.classList.add("rec"); targetInput.placeholder="🎙️ Te escucho..."; };
-    rec.onresult=e=>{ let txt=""; for(const r of e.results) txt+=r[0].transcript; targetInput.value=txt; autoGrow(targetInput); };
-    rec.onerror=(e)=>{ if(e && (e.error==="not-allowed"||e.error==="service-not-allowed")){ _micStream=null; openMicPanel(startDictation); } };
+    // es-AR primero (voseo y topónimos: "sacá un turno", "Itaembé Miní"); si el
+    // motor del dispositivo no lo tiene, cae a es-419 y recién después a es-ES.
+    const LANGS=["es-AR","es-419","es-ES"];
+    let langIdx=0, gotResult=false, recError=null, retryLang=false;
+    rec.lang=LANGS[0]; rec.interimResults=true; rec.continuous=false;
+    rec.onstart=()=>{ listening=true; gotResult=false; recError=null; btn.classList.add("on"); comp.classList.add("rec"); targetInput.placeholder="🎙️ Te escucho..."; };
+    rec.onresult=e=>{ gotResult=true; let txt=""; for(const r of e.results) txt+=r[0].transcript; targetInput.value=txt; autoGrow(targetInput); };
+    rec.onerror=(e)=>{
+      const err=e && e.error;
+      if(err==="not-allowed"||err==="service-not-allowed"){ releaseMic(); _micGranted=false; openMicPanel(startDictation); return; }
+      if(err==="language-not-supported" && langIdx<LANGS.length-1){ langIdx++; rec.lang=LANGS[langIdx]; retryLang=true; return; }
+      // En Android el STT va contra servidores de Google: sin red da "network" y
+      // sin aviso el mic parece roto. Estos errores se muestran, no se tragan.
+      if(err==="network") recError="Sin conexión para el dictado 📡. Revisá internet y probá de nuevo.";
+      else if(err==="audio-capture") recError="No encontré el micrófono 🎙️. ¿Lo está usando otra app?";
+      else if(err==="no-speech") recError="No te escuché 🎙️. Tocá el micrófono y probá de nuevo.";
+    };
     rec.onend=()=>{ listening=false; btn.classList.remove("on"); comp.classList.remove("rec");
-      targetInput.placeholder="Escribí o tocá el micrófono para hablar...";
-      const t=targetInput.value.trim(); if(t){ replyWithVoice=true; onFinal(t,false); }  // habló -> responde por voz
+      releaseMic();   // sin esto el indicador de grabación del SO queda prendido toda la sesión
+      if(retryLang){ retryLang=false; try{ rec.start(); }catch(e){} return; }
+      targetInput.placeholder = recError || "Escribí o tocá el micrófono para hablar...";
+      // Solo se envía lo DICTADO: un borrador tipeado no se manda solo si el mic
+      // se tocó por error y se canceló sin hablar.
+      const t=targetInput.value.trim();
+      if(gotResult && t){ replyWithVoice=true; onFinal(t,false); }  // habló -> responde por voz
     };
   }
 
