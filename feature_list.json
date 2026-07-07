@@ -12,5 +12,20 @@
     "regla_wip": "Antes de arrancar trabajo nuevo: si hay in_progress/paused DEL DEV ACTUAL (campo owner), pedir decisión al usuario (WIP-gate). Las de otros devs no bloquean.",
     "regla_cierre": "Al cerrar como done la entrada SE ELIMINA de este archivo y queda en progress/archive/<id>/."
   },
-  "features": []
+  "features": [
+    {
+      "id": "eventos-fotos-reales",
+      "titulo": "Refactor de Eventos: reemplazar gradientes placeholder por las fotos reales de assets/",
+      "status": "planned",
+      "criterios": [
+        "A definir en feature-start (entrevista): recorte/tamaño de foto, alcance (mosaico y/o detalle), lazy-load."
+      ],
+      "verification": "scripts/verify.sh full + verificación visual de las tarjetas de eventos con las fotos",
+      "archivos": ["index.html", "oriana-mobile.html", "assets/*"],
+      "blockedBy": [],
+      "owner": "",
+      "creada": "2026-07-07",
+      "nota": "Planificado, NO empezado. Ver handoff completo en progress/current/eventos-fotos-reales.md. Imágenes ya commiteadas en assets/ (optimizar ~12MB + renombrar url-safe). Arrancar con feature-start."
+    }
+  ]
 }
