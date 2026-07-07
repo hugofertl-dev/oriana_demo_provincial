@@ -1798,6 +1798,7 @@ input.addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey){e.prevent
 sendBtn.onclick=sendMain;
 function sendMain(){
   const t=input.value.trim(); if(!t) return;
+  micMain.cancelPending();              // Send gana: desarma el auto-envío del dictado en curso
   replyWithVoice=false;                 // escribió -> responde por texto
   pushUser(t); input.value=""; autoGrow(input); smartHandle(t);
 }
@@ -1962,13 +1963,19 @@ function setupMic(btnId, targetInput, onFinal, composerId){
   const comp=document.getElementById(composerId);
   const rec = SR ? new SR() : null;
   let listening=false;
+  // true = el usuario envió A MANO durante el dictado. El onresult FINAL llega
+  // DESPUÉS de ese tap y rellenaba el input -> onend lo auto-enviaba otra vez
+  // (mensaje duplicado). Con el flag, el envío manual gana y lo pendiente se descarta.
+  let squelched=false;
 
   async function startDictation(){
+    squelched=false;
     if(!rec){ // navegador sin dictado: fallback simulado
       comp.classList.add("rec"); btn.classList.add("on");
       targetInput.placeholder="🎙️ Escuchando... (tu navegador no soporta dictado, simulando)";
       setTimeout(()=>{ comp.classList.remove("rec"); btn.classList.remove("on");
         targetInput.placeholder="Escribí o tocá el micrófono para hablar...";
+        if(squelched) return;
         const demo="¿Cuál es el hospital más cercano?";
         targetInput.value=demo; replyWithVoice=true; onFinal(demo,true);
       },1600);
@@ -2006,8 +2013,8 @@ function setupMic(btnId, targetInput, onFinal, composerId){
     const LANGS=["es-AR","es-419","es-ES"];
     let langIdx=0, gotResult=false, recError=null, retryLang=false;
     rec.lang=LANGS[0]; rec.interimResults=true; rec.continuous=false;
-    rec.onstart=()=>{ listening=true; gotResult=false; recError=null; btn.classList.add("on"); comp.classList.add("rec"); targetInput.placeholder="🎙️ Te escucho..."; };
-    rec.onresult=e=>{ gotResult=true; let txt=""; for(const r of e.results) txt+=r[0].transcript; targetInput.value=txt; autoGrow(targetInput); };
+    rec.onstart=()=>{ listening=true; gotResult=false; recError=null; squelched=false; btn.classList.add("on"); comp.classList.add("rec"); targetInput.placeholder="🎙️ Te escucho..."; };
+    rec.onresult=e=>{ if(squelched) return; gotResult=true; let txt=""; for(const r of e.results) txt+=r[0].transcript; targetInput.value=txt; autoGrow(targetInput); };
     rec.onerror=(e)=>{
       const err=e && e.error;
       if(err==="not-allowed"||err==="service-not-allowed"){ releaseMic(); _micGranted=false; openMicPanel(startDictation); return; }
@@ -2025,8 +2032,15 @@ function setupMic(btnId, targetInput, onFinal, composerId){
       // Solo se envía lo DICTADO: un borrador tipeado no se manda solo si el mic
       // se tocó por error y se canceló sin hablar.
       const t=targetInput.value.trim();
-      if(gotResult && t){ replyWithVoice=true; onFinal(t,false); }  // habló -> responde por voz
+      if(!squelched && gotResult && t){ replyWithVoice=true; onFinal(t,false); }  // habló -> responde por voz
     };
+  }
+
+  // La llama el botón Send del composer: descarta la transcripción pendiente
+  // para que onend no vuelva a enviar lo que el usuario ya mandó a mano.
+  function cancelPending(){
+    squelched=true;
+    if(rec && listening){ try{ rec.abort(); }catch(e){} }
   }
 
   btn.onclick=async()=>{
@@ -2036,8 +2050,10 @@ function setupMic(btnId, targetInput, onFinal, composerId){
     if(st==="granted"){ startDictation(); return; }
     openMicPanel(startDictation);   // explica + dispara getUserMedia; si concede, arranca el dictado
   };
+
+  return {cancelPending};
 }
-setupMic("micBtn", input, (t)=>{ pushUser(t); input.value=""; autoGrow(input); smartHandle(t); }, "composer");
+const micMain=setupMic("micBtn", input, (t)=>{ pushUser(t); input.value=""; autoGrow(input); smartHandle(t); }, "composer");
 
 /* ============================================================
    PANELES
@@ -2252,6 +2268,7 @@ input2.addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey){e.preven
 sendBtn2.onclick=sendNinos;
 function sendNinos(){
   const t=input2.value.trim(); if(!t) return;
+  micNinos.cancelPending();             // Send gana: desarma el auto-envío del dictado en curso
   replyWithVoice=false;                 // escribió -> responde por texto
   nbubble("Yo",esc(t)); input2.value=""; autoGrow(input2);
   if(!ninosRoute(t)) ninosHandle(t);
@@ -2268,7 +2285,7 @@ chipClick=function(text){
   }
   _chipClick(text);
 };
-setupMic("micBtn2", input2, (t)=>{ nbubble("Yo",esc(t)); input2.value=""; autoGrow(input2); if(!ninosRoute(t)) ninosHandle(t); }, "composer2");
+const micNinos=setupMic("micBtn2", input2, (t)=>{ nbubble("Yo",esc(t)); input2.value=""; autoGrow(input2); if(!ninosRoute(t)) ninosHandle(t); }, "composer2");
 
 /* ============================================================
    ARRANQUE

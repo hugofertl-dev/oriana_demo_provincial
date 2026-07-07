@@ -184,3 +184,14 @@ este bug producía PALABRAS de dígitos ("cero siete") que pasan ese filtro. Val
 contra la frase esperada ("ocho de julio", "a las nueve y media") o contra patrones de
 dígitos-hablados-sueltos. Batería de repro con LLM real: scratchpad de la sesión
 2026-07-07; los checks permanentes viven en test/speakable.test.js.
+
+### SpeechRecognition: el onresult FINAL llega DESPUÉS de los eventos de UI (2026-07-07)
+Mientras el dictado está activo, un tap del usuario (Send, un chip) corre ANTES de que
+el motor entregue la transcripción final: la secuencia real es
+`onresult(interim) → tap → onresult(FINAL) → onend`. Cualquier acción manual que
+consuma el texto del input debe desarmar el dictado pendiente, o el `onresult` final
+rellena el input y el auto-envío de `onend` lo manda de nuevo (mensaje duplicado — bug
+real reportado por el usuario en dispositivo). Patrón usado: `setupMic` expone
+`cancelPending()` (flag `squelched` + `rec.abort()`) y todo envío manual la llama
+primero. Repro permanente: test/dictado-doble-envio.test.js. Ojo: NO alcanza con
+limpiar el input en el send — el onresult posterior lo vuelve a llenar.
