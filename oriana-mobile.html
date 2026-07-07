@@ -29,7 +29,7 @@
   @media(max-width:460px){ .phone{border-radius:0;height:100vh} }
 
   .screen{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg)}
-  .screen.hidden{display:none}
+  .screen.hidden{display:none!important}  /* gana a #screen-home/#screen-login que fijan display:flex por ID */
 
   /* ---------- HOME ---------- */
   #screen-home{overflow:hidden;display:flex;flex-direction:column;
@@ -281,6 +281,14 @@
   .modal-note.ok{color:var(--green)}.modal-note.err{color:var(--red)}
   .mic-steps{font-size:12.5px;color:var(--ink-soft);line-height:1.7;padding-left:20px;margin:2px 0 10px}
   .mic-steps b{color:var(--ink)}
+  /* ---------- AUTH (login / alta) ---------- */
+  .login-fld input{color:var(--ink);background:#fff}
+  .login-btn.solid{background:var(--teal);color:#fff;cursor:pointer}
+  .login-note{font-size:12px;margin:8px 0 2px;min-height:15px;text-align:center}
+  .login-note.err{color:var(--red)}
+  .login-links .link{color:var(--teal);font-weight:700;cursor:pointer}
+  .logout-btn{width:100%;margin-top:18px;padding:13px;border-radius:11px;border:1.5px solid var(--red);
+    background:#fff;color:var(--red);font-size:14px;font-weight:700;cursor:pointer}
 </style>
 </head>
 <body>
@@ -300,19 +308,48 @@
       <p class="login-sub">Identidad Digital Provincial</p>
 
       <div class="login-card">
-        <label class="login-fld">CUIL / Usuario
-          <input type="text" value="" placeholder="27-________-_" disabled>
+        <label class="login-fld">Email
+          <input type="email" id="loginEmail" autocomplete="username" placeholder="tucorreo@ejemplo.com">
         </label>
         <label class="login-fld">Contraseña
-          <input type="password" value="" placeholder="••••••••" disabled>
+          <input type="password" id="loginPass" autocomplete="current-password" placeholder="••••••••">
         </label>
-        <button class="login-btn dis" disabled>Ingresar</button>
-        <button class="login-btn dis outline" disabled>🔐 Ingresar con Identidad Digital</button>
-        <div class="login-links"><span>¿Olvidaste tu clave?</span><span>Crear cuenta</span></div>
+        <button class="login-btn solid" id="loginBtn">Ingresar</button>
+        <div class="login-note err" id="loginErr"></div>
+        <div class="login-links"><span></span><span class="link" id="goSignup">Crear cuenta</span></div>
       </div>
 
       <div class="login-or"><span>modo demostración</span></div>
       <button class="login-demo" id="loginDemo">Iniciar demo como María ›</button>
+    </div>
+  </div>
+
+  <!-- ===== CREAR CUENTA ===== -->
+  <div class="screen hidden" id="screen-signup">
+    <div class="statusbar"><span>3:29</span><span class="ic">●●● ▮</span></div>
+    <div class="login-wrap">
+      <h1 class="login-title" style="margin-top:22px">Crear cuenta</h1>
+      <p class="login-sub">Identidad Digital Provincial</p>
+      <div class="login-card">
+        <label class="login-fld">Email
+          <input type="email" id="suEmail" autocomplete="email" placeholder="tucorreo@ejemplo.com">
+        </label>
+        <label class="login-fld">Nombre
+          <input type="text" id="suNombre" autocomplete="given-name" placeholder="Tu nombre">
+        </label>
+        <label class="login-fld">Apellido
+          <input type="text" id="suApellido" autocomplete="family-name" placeholder="Tu apellido">
+        </label>
+        <label class="login-fld">Contraseña
+          <input type="password" id="suPass" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
+        </label>
+        <label class="login-fld">Repetir contraseña
+          <input type="password" id="suPass2" autocomplete="new-password" placeholder="Repetí la contraseña">
+        </label>
+        <button class="login-btn solid" id="signupBtn">Crear cuenta</button>
+        <div class="login-note err" id="suErr"></div>
+        <div class="login-links"><span class="link" id="goLogin">‹ Volver al login</span><span></span></div>
+      </div>
     </div>
   </div>
 
@@ -409,6 +446,7 @@
       <div id="pf-benefits"></div>
       <div class="section-t">Mis documentos</div>
       <div class="grid" id="pf-docs"></div>
+      <button class="logout-btn" id="logoutBtn">Cerrar sesión</button>
     </div>
   </div>
 
@@ -547,9 +585,73 @@ const DB = {
 };
 
 /* ============================================================
+   AUTENTICACIÓN (demo, persistida en localStorage)
+   ⚠️ Login SIMULADO: las contraseñas quedan en texto plano en el navegador.
+      No es seguridad real (haría falta backend). Sirve para la demo.
+   ============================================================ */
+const AUTH_KEY="oriana_users", SESS_KEY="oriana_session";
+const DEMO_CIUDADANO = { nombre: DB.ciudadano.nombre, email: DB.ciudadano.email };
+function loadUsers(){ try{ return JSON.parse(localStorage.getItem(AUTH_KEY)||"[]"); }catch(e){ return []; } }
+function saveUsers(u){ try{ localStorage.setItem(AUTH_KEY, JSON.stringify(u)); }catch(e){} }
+function getSession(){ try{ return JSON.parse(localStorage.getItem(SESS_KEY)||"null"); }catch(e){ return null; } }
+function setSession(s){ try{ s ? localStorage.setItem(SESS_KEY, JSON.stringify(s)) : localStorage.removeItem(SESS_KEY); }catch(e){} }
+function fld(id){ const e=document.getElementById(id); return e?e.value:""; }
+function initials(name){ return (name||"").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join("") || "?"; }
+
+// Aplica los datos del usuario logueado (o restaura la demo María si es null).
+// Solo toca nombre y email; el resto de DB.ciudadano queda con los datos demo
+// para que los flujos del chat (turnos, reclamos) sigan funcionando.
+function applyUser(u){
+  if(u){ DB.ciudadano.nombre=(u.nombre+" "+u.apellido).trim(); DB.ciudadano.email=u.email; }
+  else { DB.ciudadano.nombre=DEMO_CIUDADANO.nombre; DB.ciudadano.email=DEMO_CIUDADANO.email; }
+}
+
+function doLogin(){
+  const email=fld("loginEmail").trim().toLowerCase(), pass=fld("loginPass");
+  const err=document.getElementById("loginErr");
+  if(!email||!pass){ err.textContent="Completá email y contraseña."; return; }
+  const u=loadUsers().find(x=>x.email===email && x.pass===pass);
+  if(!u){ err.textContent="Email o contraseña incorrectos."; return; }
+  err.textContent=""; setSession({email:u.email}); applyUser(u); show("home");
+}
+
+function doSignup(){
+  const email=fld("suEmail").trim().toLowerCase();
+  const nombre=fld("suNombre").trim().replace(/[<>]/g,""), apellido=fld("suApellido").trim().replace(/[<>]/g,"");
+  const p1=fld("suPass"), p2=fld("suPass2"), err=document.getElementById("suErr");
+  if(!email||!nombre||!apellido||!p1||!p2){ err.textContent="Completá todos los campos."; return; }
+  if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email)){ err.textContent="El email no es válido."; return; }
+  if(p1.length<6){ err.textContent="La contraseña debe tener al menos 6 caracteres."; return; }
+  if(p1!==p2){ err.textContent="Las contraseñas no coinciden."; return; }
+  const users=loadUsers();
+  if(users.some(x=>x.email===email)){ err.textContent="Ya existe una cuenta con ese email."; return; }
+  const u={email,nombre,apellido,pass:p1}; users.push(u); saveUsers(users);
+  err.textContent=""; setSession({email}); applyUser(u); show("home");
+}
+
+function logout(){
+  setSession(null); applyUser(null);
+  ["loginEmail","loginPass","suEmail","suNombre","suApellido","suPass","suPass2"].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=""; });
+  const le=document.getElementById("loginErr"); if(le) le.textContent="";
+  show("login");
+}
+
+// Resuelve la pantalla inicial según la sesión persistida.
+function initAuth(){
+  const s=getSession();
+  if(s && s.demo){ applyUser(null); show("home"); return; }
+  if(s && s.email){
+    const u=loadUsers().find(x=>x.email===s.email);
+    if(u){ applyUser(u); show("home"); return; }
+    setSession(null); applyUser(null); show("login"); return;   // sesión huérfana -> login
+  }
+  applyUser(null); show("login");
+}
+
+/* ============================================================
    NAVEGACIÓN
    ============================================================ */
-const screens = ["login","home","chat","turnos","reclamos","cerca","perfil","ninos","linda","evento"];
+const screens = ["login","signup","home","chat","turnos","reclamos","cerca","perfil","ninos","linda","evento"];
 document.querySelectorAll(".navbtn").forEach(b=>{
   b.onclick=()=>show(b.dataset.screen);
 });
@@ -1441,10 +1543,11 @@ function renderPerfil(){
   const c=DB.ciudadano;
   document.getElementById("pf-name").textContent=c.nombre;
   document.getElementById("pf-dni").textContent=`DNI ${c.dni} · ${c.barrio}`;
+  const pic=document.querySelector("#screen-perfil .pic"); if(pic) pic.textContent=initials(c.nombre);
   document.getElementById("pf-data").innerHTML=[
     ["CUIL",c.cuil],["Contacto",c.contacto],["Grupo sanguíneo",c.grupo],
     ["Cobertura",c.obra_social],["Correo",c.email],["Hijos a cargo",c.hijos.map(h=>h.nombre+" ("+h.edad+")").join(", ")]
-  ].map(([t,v])=>`<div class="tile"><div class="tt">${t}</div><div class="tv">${v}</div></div>`).join("");
+  ].map(([t,v])=>`<div class="tile"><div class="tt">${t}</div><div class="tv">${esc(String(v))}</div></div>`).join("");
   document.getElementById("pf-benefits").innerHTML=DB.beneficios.map(b=>
     `<div class="benefit"><div class="ico">${b.ico}</div>
      <div class="info"><h4>${b.nombre} ${b.estado==="Pendiente"?'<span class="badge a" style="margin-left:6px">En evaluación</span>':'<span class="badge g" style="margin-left:6px">Activo</span>'}</h4><p>${b.detalle}</p></div>
@@ -1646,7 +1749,10 @@ function startAssistant(){
   show("chat");   // como el chat está vacío, dispara greet() de nuevo
   setTimeout(()=>{ const inp=document.getElementById("input"); if(inp) inp.focus(); },300);
 }
-function renderHome(){ const el=document.getElementById("homeName"); if(el) el.textContent=DB.ciudadano.nombre; }
+function renderHome(){
+  const el=document.getElementById("homeName"); if(el) el.textContent=DB.ciudadano.nombre;
+  const av=document.getElementById("homeAvatar"); if(av) av.textContent=initials(DB.ciudadano.nombre);
+}
 
 /* ---------- EVENTOS (LINDA) ---------- */
 const EVENTOS=[
@@ -1739,8 +1845,17 @@ function openEvento(id){ renderEvento(id); show("evento"); document.getElementBy
 
 document.querySelectorAll(".lf").forEach(b=>b.onclick=()=>setLindaFilter(b.dataset.filter));
 document.getElementById("startBtn").onclick=startAssistant;
-document.getElementById("loginDemo").onclick=()=>show("home");
+document.getElementById("loginDemo").onclick=()=>{ setSession({demo:true}); applyUser(null); show("home"); };
 const _av=document.getElementById("homeAvatar"); if(_av) _av.onclick=()=>show("perfil");
+
+// --- Auth: cableo de login / crear cuenta / cerrar sesión ---
+document.getElementById("loginBtn").onclick=doLogin;
+document.getElementById("signupBtn").onclick=doSignup;
+document.getElementById("goSignup").onclick=()=>{ const e=document.getElementById("suErr"); if(e) e.textContent=""; show("signup"); };
+document.getElementById("goLogin").onclick=()=>show("login");
+document.getElementById("logoutBtn").onclick=logout;
+document.getElementById("loginPass").addEventListener("keydown",e=>{ if(e.key==="Enter") doLogin(); });
+document.getElementById("suPass2").addEventListener("keydown",e=>{ if(e.key==="Enter") doSignup(); });
 
 // Aviso de origen: en file:// el micrófono re-pregunta siempre (limitación del navegador).
 if(location.protocol==="file:"){
@@ -1755,7 +1870,7 @@ if(location.protocol==="file:"){
   });
 }
 
-show("login");
+initAuth();
 </script>
 </body>
 </html>
