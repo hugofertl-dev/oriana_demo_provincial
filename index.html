@@ -742,6 +742,13 @@ function horaPalabras(h,mm){
 }
 function speakable(raw){
   let s=(raw||"").replace(/[*#_>•]/g,"").replace(/\s+/g," ").trim();
+  // días abreviados de la agenda (Mié 8/07) -> nombre completo.
+  // "Mar" SOLO antes de un número, para no pisar la palabra "mar".
+  // Ojo \b: no funciona tras vocal acentuada (é no es \w) -> lookahead (?!\w).
+  s=s.replace(/\bMar\.?(?=\s+\d)/g,"martes");
+  [[/\bLun\.?(?!\w)/gi,"lunes"],[/\bMi[ée]\.?(?!\w)/gi,"miércoles"],[/\bJue\.?(?!\w)/gi,"jueves"],
+   [/\bVie\.?(?!\w)/gi,"viernes"],[/\bS[áa]b\.?(?!\w)/gi,"sábado"],[/\bDom\.?(?!\w)/gi,"domingo"]
+  ].forEach(([re,rep])=>s=s.replace(re,rep));
   // teléfonos u otras secuencias con guiones -> dígito por dígito
   s=s.replace(/\b\d{2,}(?:[-\s]\d{2,})+\b/g,m=>m.replace(/[-\s]/g," ").replace(/\d/g,d=>numToWords(+d)+" ").trim());
   // ordinales tipo 1ra, 2do, 3er, 4ta
@@ -756,14 +763,16 @@ function speakable(raw){
   s=s.replace(/(\d+)\s?%/g,(m,n)=>numToWords(+n)+" por ciento");
   // decimales 2,7 o 2.7
   s=s.replace(/\b(\d+)[.,](\d+)\b/g,(m,a,b)=>numToWords(+a)+" coma "+b.split("").map(d=>numToWords(+d)).join(" "));
+  // "24 h" / "24h" / "2 hs" -> "veinticuatro horas" (ANTES de convertir enteros,
+  // después ya no hay dígitos y la regla no matchearía)
+  s=s.replace(/\b(\d+) ?hs?\b/gi,(m,n)=>numToWords(+n)+" horas");
   // enteros restantes
   s=s.replace(/\d+/g,m=>numToWords(+m));
   // abreviaturas comunes
   const abbr=[
     [/\bDra\.?\b/gi,"doctora"],[/\bDr\.?\b/gi,"doctor"],
     [/\bAv\.?\b/gi,"avenida"],[/\bkm\b/gi,"kilómetros"],[/\bmts?\.?\b/gi,"metros"],
-    [/\bhs\b/gi,"horas"],[/\bTel\.?\b/gi,"teléfono"],[/\bDNI\b/g,"documento"],
-    [/\b24 ?h\b/gi,"veinticuatro horas"]
+    [/\bhs\b/gi,"horas"],[/\bTel\.?\b/gi,"teléfono"],[/\bDNI\b/g,"documento"]
   ];
   abbr.forEach(([re,rep])=>s=s.replace(re,rep));
   return s.replace(/\s+/g," ").trim();
