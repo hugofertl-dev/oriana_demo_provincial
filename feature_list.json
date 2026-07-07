@@ -12,5 +12,26 @@
     "regla_wip": "Antes de arrancar trabajo nuevo: si hay in_progress/paused DEL DEV ACTUAL (campo owner), pedir decisión al usuario (WIP-gate). Las de otros devs no bloquean.",
     "regla_cierre": "Al cerrar como done la entrada SE ELIMINA de este archivo y queda en progress/archive/<id>/."
   },
-  "features": []
+  "features": [
+    {
+      "id": "chat-llm-misiones",
+      "titulo": "Chat de ORIANA con LLM de Anthropic (Claude) + datos reales de Misiones",
+      "status": "in_progress",
+      "criterios": [
+        "CUANDO el usuario escribe o dicta en el chat principal, EL SISTEMA DEBE responder con texto generado por Claude vía /api/chat (key oculta en el servidor, LLM_API_KEY).",
+        "CUANDO el tema es de la demo (turnos, reclamos luz/hospital, hospitales/comisarías cercanos, beneficios), EL SISTEMA DEBE responder solo con datos de Misiones cargados en la DB — nunca lugares inventados o de otra provincia.",
+        "CUANDO el usuario pide cualquier otra cosa, EL SISTEMA DEBE decir amablemente que todavía está aprendiendo y no conoce ese tema, y retomar la última consulta pendiente.",
+        "CUANDO se confirma un turno o reclamo en la conversación, EL SISTEMA DEBE registrarlo en la DB simulada (con ticket) y verse en Actividad/Mis reclamos.",
+        "CUANDO la llamada al LLM falla, EL SISTEMA DEBE caer al motor regex actual sin romperse.",
+        "CUANDO el usuario habló por voz, EL SISTEMA DEBE leer la respuesta con la voz actual (ElevenLabs).",
+        "CUANDO se muestra un teléfono en la app (144/911, hospitales, comisarías), EL SISTEMA DEBE mostrarlo como link tel: tocable."
+      ],
+      "verification": "scripts/verify.sh full sin regresiones + curl /api/chat (en tema → datos Misiones; fuera de tema → 'estoy aprendiendo' y retoma; sin key → fallback regex) + test headless flujo de turno + aceptación del usuario local e iPhone",
+      "archivos": ["netlify/functions/chat.js", "netlify.toml", "package.json", "index.html", "oriana-mobile.html", "COMO-PUBLICAR.md"],
+      "blockedBy": [],
+      "owner": "hugo",
+      "creada": "2026-07-06",
+      "notas": "Aprobado: LLM conduce todo (temas restringidos), Acompañamiento sigue guionado, tel: en toda la app, DB y eventos con datos reales de Misiones (validar datos con el usuario antes de cargar), fallback a regex, modelo claude-opus-4-8."
+    }
+  ]
 }

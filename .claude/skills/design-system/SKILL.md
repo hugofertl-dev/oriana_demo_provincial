@@ -31,6 +31,7 @@ del apartado más parecido; no inventar clases nuevas si ya existe una.
 | Tarjeta de dato | `.card` + `.row` + `.badge` (g/a) | Beneficios, turnos, perfil. Badge verde = activo, ámbar = pendiente. |
 | Navegación inferior | `.navbtn[data-screen]` | Una pantalla por botón; registrar la screen en `const screens`. |
 | **Modal / bottom-sheet** | `.modal-bg` + `.modal` + `.modal-h`/`.modal-lead`/`.modal-foot` + `.btn-ghost`/`.btn-solid` + `.modal-note`(`.ok`/`.err`) | Instancia de referencia: `#micModal` (panel de permiso de micrófono). Abrir con `.open` en `.modal-bg`; cerrar tocando el fondo. Poner `role="dialog"` + `aria-modal` en `.modal`. |
+| **Formulario de auth / pantalla completa con card** | `.login-wrap` + `.login-card` + `.login-fld` + `.login-btn.solid` + `.login-note.err` + `.login-links .link` | Instancias de referencia: `#screen-login` y `#screen-signup`. Errores en `.login-note.err` (texto corto), links de navegación en `.login-links`. |
 
 ## Convenciones aprobadas
 
