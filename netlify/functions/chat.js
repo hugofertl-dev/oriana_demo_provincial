@@ -117,7 +117,8 @@ exports.handler = async (event) => {
 
   // Netlify corta la función a los ~10-26 s: los defaults del SDK (timeout 10 min,
   // 2 retries) harían que el cliente nunca vea la respuesta. Un intento corto y afuera.
-  const client = new Anthropic({ apiKey: key, timeout: 8000, maxRetries: 0 });
+  // 9 s = lo máximo que se puede estirar dejando ~1 s para devolver el error limpio.
+  const client = new Anthropic({ apiKey: key, timeout: 9000, maxRetries: 0 });
   try {
     const response = await client.messages.create({
       model: MODEL,
