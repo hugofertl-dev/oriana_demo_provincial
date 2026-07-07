@@ -734,11 +734,15 @@ function ordinalWord(n,suf){
 }
 const MESES=["","enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 function horaPalabras(h,mm){
-  const hh=numToWords(h);
-  if(mm===0)return hh+" en punto";
-  if(mm===15)return hh+" y cuarto";
-  if(mm===30)return hh+" y media";
-  return hh+" y "+numToWords(mm);
+  // Hora HABLADA: 12 h + momento del día, para que suene a hora y no a número
+  // ("15:40" -> "tres y cuarenta de la tarde", no "quince y cuarenta").
+  const per = h===0 ? "de la noche" : h<12 ? "de la mañana" : h<14 ? "del mediodía" : h<19 ? "de la tarde" : "de la noche";
+  const h12 = h%12 || 12;
+  const hh = h12===1 ? "una" : numToWords(h12);   // la hora va en femenino
+  if(mm===0)  return hh+" "+per;
+  if(mm===15) return hh+" y cuarto "+per;
+  if(mm===30) return hh+" y media "+per;
+  return hh+" y "+numToWords(mm)+" "+per;
 }
 function speakable(raw){
   let s=(raw||"").replace(/[*#_>•]/g,"").replace(/\s+/g," ").trim();
@@ -753,6 +757,8 @@ function speakable(raw){
   s=s.replace(/\b\d{2,}(?:[-\s]\d{2,})+\b/g,m=>m.replace(/[-\s]/g," ").replace(/\d/g,d=>numToWords(+d)+" ").trim());
   // ordinales tipo 1ra, 2do, 3er, 4ta
   s=s.replace(/\b(\d+)\s?(ra|era|da|do|ro|er|to|ta|mo|ma|vo|va|na)\b/gi,(m,n,suf)=>ordinalWord(+n,suf));
+  // el "·" de la agenda antes de una hora se dice "a las" ("Mié 8/07 · 09:30")
+  s=s.replace(/\s*·\s*(?=\d{1,2}:\d{2})/g," a las ");
   // horas HH:MM
   s=s.replace(/(\d{1,2}):(\d{2})/g,(m,h,mm)=>horaPalabras(+h,+mm));
   // fechas D/MM
@@ -768,11 +774,12 @@ function speakable(raw){
   s=s.replace(/\b(\d+) ?hs?\b/gi,(m,n)=>numToWords(+n)+" horas");
   // enteros restantes
   s=s.replace(/\d+/g,m=>numToWords(+m));
-  // abreviaturas comunes
+  // abreviaturas comunes. Ojo: con punto opcional NO usar \b al final
+  // ("Dr. " -> \b falla tras el punto y queda "doctor. ") -> lookahead (?!\w).
   const abbr=[
-    [/\bDra\.?\b/gi,"doctora"],[/\bDr\.?\b/gi,"doctor"],
-    [/\bAv\.?\b/gi,"avenida"],[/\bkm\b/gi,"kilómetros"],[/\bmts?\.?\b/gi,"metros"],
-    [/\bhs\b/gi,"horas"],[/\bTel\.?\b/gi,"teléfono"],[/\bDNI\b/g,"documento"]
+    [/\bDra\.?(?!\w)/gi,"doctora"],[/\bDr\.?(?!\w)/gi,"doctor"],
+    [/\bAv\.?(?!\w)/gi,"avenida"],[/\bkm\b/gi,"kilómetros"],[/\bmts?\.?(?!\w)/gi,"metros"],
+    [/\bhs\b/gi,"horas"],[/\bTel\.?(?!\w)/gi,"teléfono"],[/\bDNI\b/g,"documento"]
   ];
   abbr.forEach(([re,rep])=>s=s.replace(re,rep));
   return s.replace(/\s+/g," ").trim();

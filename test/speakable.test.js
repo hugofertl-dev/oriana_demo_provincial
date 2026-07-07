@@ -69,6 +69,20 @@ for (const [txt, ab, dia, fecha] of AGENDA) {
 console.log("── 'mar' palabra común NO se convierte en 'martes'");
 check("'el mar estaba agitado' conserva 'mar'", /\bmar estaba\b/i.test(say("el mar estaba agitado")) && !/martes/i.test(say("el mar estaba agitado")));
 
+console.log("── horas: formato hablado de 12 h con momento del día y 'a las'");
+check("'Jue 9/07 · 15:40' → 'a las tres y cuarenta de la tarde'", (() => { const o = say("Jue 9/07 · 15:40"); return o.includes("a las tres y cuarenta de la tarde") && !/quince y cuarenta/.test(o); })());
+check("'Sáb 12/07 · 20:00' → 'a las ocho de la noche'", (() => { const o = say("Sáb 12/07 · 20:00"); return o.includes("a las ocho de la noche") && !/veinte en punto/.test(o); })());
+check("'Mié 8/07 · 11:00' → 'a las once de la mañana'", say("Mié 8/07 · 11:00").includes("a las once de la mañana"));
+check("'Vie 10/07 · 10:20' → 'a las diez y veinte de la mañana'", say("Vie 10/07 · 10:20").includes("a las diez y veinte de la mañana"));
+check("'09:15' → 'nueve y cuarto de la mañana'", say("El turno es a las 09:15").includes("nueve y cuarto de la mañana"));
+check("'21:00 a 01:00' → hora 1 en femenino ('una', no 'uno')", (() => { const o = say("21:00 a 01:00"); return o.includes("nueve de la noche") && /\buna de la/.test(o) && !/\buno de la/.test(o); })());
+check("'12:30' → 'doce y media del mediodía'", say("12:30").includes("doce y media del mediodía"));
+check("no dice 'a las a las' cuando el texto ya lo trae", !/a las a las/.test(say("Turnos: Mié 09/07 a las 11:00")));
+
+console.log("── abreviaturas con punto: el punto no sobrevive");
+check("'Dr. Ramón Madariaga' → 'doctor Ramón' (sin punto pegado)", (() => { const o = say("Hospital Dr. Ramón Madariaga"); return o.includes("doctor Ramón") && !o.includes("doctor."); })());
+check("'Av. Uruguay' → 'avenida Uruguay' (sin punto pegado)", (() => { const o = say("Av. Uruguay 1234"); return o.includes("avenida Uruguay") && !o.includes("avenida."); })());
+
 console.log("── regresión: fechas y horas ya cubiertas siguen bien");
 check("'Turnos: Mié 09/07 a las 11:00' → 'nueve de julio' y 'once'", (() => { const o = say("Turnos: Mié 09/07 a las 11:00"); return o.includes("nueve de julio") && /once/.test(o); })());
 check("'24 h' → 'veinticuatro horas'", /veinticuatro horas/.test(say("Guardia 24 h")));
