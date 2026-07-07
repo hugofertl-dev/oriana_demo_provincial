@@ -60,7 +60,8 @@ exports.handler = async (event) => {
       isBase64Encoded: true
     };
   } catch (e) {
-    return json(502, { error: String((e && e.message) || e) });
+    console.error("tts.js:", String((e && e.message) || e).slice(0, 300));   // detalle solo en el log del server
+    return json(502, { error: "TTS 502" });
   }
 };
 

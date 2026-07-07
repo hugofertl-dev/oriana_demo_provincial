@@ -1655,7 +1655,7 @@ function renderReclamos(){
   DB.reclamos.forEach(r=>{
     const ico = r.tipo==="elec" ? "⚡" : "🏥";
     el.innerHTML+=`<div class="benefit"><div class="ico">${ico}</div>`+
-      `<div class="info"><h4>${esc(r.titulo)}</h4><p>Ticket ${r.id}${r.resumen?` · ${esc(r.resumen)}`:""}</p></div>`+
+      `<div class="info"><h4>${esc(r.titulo)}</h4><p>Ticket ${esc(String(r.id))}${r.resumen?` · ${esc(r.resumen)}`:""}</p></div>`+
       `<div class="amt"><span class="badge a">${esc(r.estado)}</span></div></div>`;
   });
 }

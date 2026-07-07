@@ -173,3 +173,14 @@ Netlify se cortan a ~10-26 s, así que los clientes HTTP internos deben fallar A
 Además el reset de conversación (`startAssistant`) invalida respuestas en vuelo con `llmEpoch` y
 vacía `llmQueue`: sin eso, una respuesta vieja se inyecta, el historial arranca con rol assistant
 y `/api/chat` lo rechaza con 400 para siempre (`llmDisabled` permanente).
+
+### speakable(): el ORDEN de las reglas es semántico, y cómo validar voz (2026-07-07)
+Las reglas de normalización de voz van de lo específico a lo genérico: horas (`HH:MM`) y
+fechas (`D/MM`) SIEMPRE antes que la regla de teléfonos (dígito a dígito), porque
+"Mié 8/07 09:30" contiene "07 09" que parece un par telefónico — con el orden invertido
+la voz decía "cero siete cero nueve" (bug real detectado por el usuario en dispositivo).
+Moraleja de validación: un check de voz que busca DÍGITOS sobrevivientes no alcanza —
+este bug producía PALABRAS de dígitos ("cero siete") que pasan ese filtro. Validar
+contra la frase esperada ("ocho de julio", "a las nueve y media") o contra patrones de
+dígitos-hablados-sueltos. Batería de repro con LLM real: scratchpad de la sesión
+2026-07-07; los checks permanentes viven en test/speakable.test.js.

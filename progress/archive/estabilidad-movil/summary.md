@@ -1,0 +1,8 @@
+# estabilidad-movil — Estabilidad de la demo en celulares (iOS/Android)
+
+- **Qué se hizo:** las 5 fases de `PLAN_ESTABILIDAD.md` (acá al lado): timeouts de red en todos los caminos (cliente `fetchTimeout` + SDK Anthropic 9 s + ElevenLabs 8 s), viewport/teclado iOS (dvh, safe-area, visualViewport `--kb`), reset del chat con epoch, voz confiable (es-AR + fallback, errores visibles, mic liberado, AudioContext interrupted), robustez (flow sincrónico, debounce por chip, geo cancelable, back de Android con pushState), performance (TTS flash_v2_5, warm-up OPTIONS, cache assets immutable, fotos 756→357 KB, 429/529 con espera) y menores (persistencia localStorage v:1 con reset en logout+reload, audioCache FIFO 30, sin autofocus táctil, publish desde `dist/`).
+- **Criterios:** ítems 1-31 del plan ✅ (12 = queda auto-envío por decisión del usuario; 23 descartado: POST no cacheable por CDN; 32 no encarado, cosmético).
+- **Verificación:** 5 suites nuevas `test/estabilidad-fase{1..5}.test.js` (rojas antes de cada fix) + sabotage por fase + `verify.sh full` verde; verificación en dispositivo del usuario (viewport, teclado, voz, dictado, back, deploy dist/ verde).
+- **Review:** aprobado con 3 observaciones menores, las 3 aplicadas (reload en logout, shape versionado, debounce por elemento).
+- **Hallazgo estrella:** la regla de teléfonos de `speakable()` corría antes que fecha/hora y leía "Mié 8/07 09:30" como dígitos sueltos — detectado por el usuario en dispositivo, no por la batería de validación (que chequeaba dígitos sobrevivientes y este bug producía *palabras* de dígitos).
+- **Commits:** b05b10e..78ccb3e (rama pre_produccion).

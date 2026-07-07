@@ -13,3 +13,4 @@
 | eventos-fotos-reales | Eventos con fotos reales en mosaico y detalle (assets optimizados url-safe) | 2026-07-07 | 311003f |
 | permiso-microfono | Panel de permiso de micrófono (iOS/Safari) | 2026-07-06 | 39a6260 |
 | login-cuentas | Login con cuentas y persistencia (localStorage) | 2026-07-06 | b81a82f |
+| estabilidad-movil | Estabilidad de la demo en celulares iOS/Android — 5 fases (red, voz, races, performance, deuda) | 2026-07-07 | 78ccb3e |
