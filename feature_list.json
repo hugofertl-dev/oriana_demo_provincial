@@ -12,5 +12,20 @@
     "regla_wip": "Antes de arrancar trabajo nuevo: si hay in_progress/paused DEL DEV ACTUAL (campo owner), pedir decisión al usuario (WIP-gate). Las de otros devs no bloquean.",
     "regla_cierre": "Al cerrar como done la entrada SE ELIMINA de este archivo y queda en progress/archive/<id>/."
   },
-  "features": []
+  "features": [
+    {
+      "id": "estabilidad-movil",
+      "titulo": "Plan de estabilidad de la demo en celulares (iOS/Android) — 5 fases",
+      "status": "planned",
+      "criterios": [
+        "Ver PLAN_ESTABILIDAD.md (raíz): 32 ítems verificados en código, divididos en 5 fases priorizadas. Cada fase se triajea y trabaja por separado con el flujo normal."
+      ],
+      "verification": "Por fase: verify.sh full + tests nuevos donde aplique + verificación manual en celular iOS y Android para lo que jsdom no cubre",
+      "archivos": ["PLAN_ESTABILIDAD.md", "index.html", "oriana-mobile.html", "netlify/functions/chat.js", "netlify/functions/tts.js", "netlify.toml"],
+      "blockedBy": [],
+      "owner": "",
+      "creada": "2026-07-07",
+      "nota": "Origen: auditoría profunda 2026-07-07 (3 auditores paralelos). Fase 1 = críticos que pueden matar la demo en vivo. Ninguna fase empezada."
+    }
+  ]
 }
