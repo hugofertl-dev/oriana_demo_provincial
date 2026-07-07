@@ -96,6 +96,21 @@ fantasma; (2) ser idempotente — el modelo puede re-emitir una action ya confir
 (`lastActionKey`). El `OUTPUT_SCHEMA` de chat.js restringe `action.type` a un enum, así que no se
 pueden fabricar acciones novedosas. Tests en `test/reclamos.test.js`.
 
+### Remapear toda la paleta de golpe con alias en :root (2026-07-07)
+Para un rediseño CSS-first sin tocar el markup/JS: reescribir `:root` con los tokens
+NUEVOS + **alias de los nombres viejos apuntando a ellos** (`--teal:var(--primary)`,
+`--line:var(--border)`, `--muted:var(--ink-medium)`, `--n1..3`, `--ink-soft`, etc.).
+Todo el `var(--teal)` inline del markup/JS toma la paleta nueva sin cambiar una sola
+clase → los hooks de los tests/handlers quedan intactos. Fue la palanca del rediseño.
+
+### Screenshot headless: encuadrar el teléfono con viewport 480 (2026-07-07)
+El `.phone` es `min(430px,100vw)`. Con `chrome --headless=new --window-size=430,...`
+el teléfono queda con el borde derecho FUERA del frame (parece cortado) — NO es overflow
+real (se midió `documentElement.scrollWidth <= clientWidth`). Fix: capturar con
+`--window-size=480,980 --force-device-scale-factor=2` → el teléfono de 430 queda centrado
+y completo. Para manejar la app en el screenshot: inyectar un `<script>` con
+`window.typing=cb=>cb()` (typing síncrono) y `show("pantalla")` antes de capturar.
+
 ### API de Claude: sonnet-5 / output_config / thinking:disabled son válidos (2026-07-06)
 Al revisar `chat.js` pueden "sonar" inventados `claude-sonnet-5`, `output_config.format` y
 `thinking:{type:"disabled"}` — NO lo son (skill `claude-api`, estado 2026): Sonnet 5 existe y
