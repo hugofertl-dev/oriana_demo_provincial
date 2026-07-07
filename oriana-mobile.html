@@ -794,6 +794,10 @@ const EL = {
 };
 const audioCache = {};      // texto -> objectURL (evita re-generar)
 let currentAudio = null;
+// TTS por Web Audio: un AudioContext suspendible. A diferencia del <audio>,
+// suspend() libera la sesión de audio de iOS AL INSTANTE — si queda tomada,
+// el dictado (SpeechRecognition) arranca sordo durante ~15-60 s.
+let ttsCtx = null, ttsSrcNode = null;
 
 // iOS bloquea reproducir audio fuera de un gesto de usuario. Reusamos UN solo
 // elemento <audio> y lo "desbloqueamos" (prime) con un clip silencioso durante
@@ -813,6 +817,10 @@ function silentClipURL(){
 function primeAudio(){ // llamar SIEMPRE dentro de un gesto (toque)
   if(_audioPrimed) return;
   try{
+    // Desbloquear también el AudioContext durante el gesto (iOS lo exige la 1ª vez);
+    // queda suspendido de inmediato — solo corre mientras suena una respuesta.
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(AC && !ttsCtx){ ttsCtx=new AC(); ttsCtx.resume().then(()=>ttsCtx.suspend()).catch(()=>{}); }
     if(!ttsAudio) ttsAudio=new Audio();
     ttsAudio.src=silentClipURL();
     const p=ttsAudio.play();
@@ -841,8 +849,33 @@ function browserSpeak(text){
 }
 
 function stopAudio(){
+  if(ttsSrcNode){ try{ ttsSrcNode.onended=null; ttsSrcNode.stop(); }catch(e){} ttsSrcNode=null; }
+  if(ttsCtx && ttsCtx.state==="running") ttsCtx.suspend().catch(()=>{});
   if(currentAudio){ currentAudio.pause(); currentAudio=null; }
   if("speechSynthesis" in window) speechSynthesis.cancel();
+}
+
+// Reproduce el mp3 del TTS por AudioContext y SUSPENDE el contexto al terminar
+// (libera la sesión de audio de iOS ya mismo → el mic no queda sordo).
+async function webAudioPlay(url, opts={}){
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC) throw new Error("sin WebAudio");
+  if(!ttsCtx) ttsCtx=new AC();
+  if(ttsCtx.state!=="running") await ttsCtx.resume();
+  const ab=await (await fetch(url)).arrayBuffer();
+  const buf=await new Promise((res,rej)=>ttsCtx.decodeAudioData(ab,res,rej));  // forma callback: Safari
+  if(ttsSrcNode){ try{ ttsSrcNode.onended=null; ttsSrcNode.stop(); }catch(e){} }
+  const src=ttsCtx.createBufferSource();
+  src.buffer=buf; src.connect(ttsCtx.destination);
+  ttsSrcNode=src;
+  src.onended=()=>{
+    ttsSrcNode=null;
+    if(typeof micLog==="function") micLog("TTS(WebAudio) ended → suspend()");  // DEBUG TEMPORAL mic
+    ttsCtx.suspend().then(()=>{ if(typeof micLog==="function") micLog("AudioContext suspendido (sesión liberada)"); }).catch(()=>{});
+    if(opts.onEnd) opts.onEnd();
+  };
+  if(typeof micLog==="function") micLog("TTS play() por WebAudio");  // DEBUG TEMPORAL mic
+  src.start(0);
 }
 
 async function elevenSpeak(text){
@@ -888,18 +921,22 @@ async function speak(text, opts={}){
   try{
     const gen = USE_SERVER_TTS ? serverSpeak : elevenSpeak;
     const url=audioCache[clean] || await gen(clean);
+    try{
+      await webAudioPlay(url, opts);   // camino primario: AudioContext suspendible
+      return;
+    }catch(werr){
+      if(typeof micLog==="function") micLog("WebAudio falló ("+werr.message+") → <audio>");  // DEBUG TEMPORAL mic
+    }
+    // Fallback: elemento <audio> primeado (comportamiento anterior)
     if(!ttsAudio) ttsAudio=new Audio();
-    // Al terminar de hablar: descargar el <audio> YA, para que iOS empiece a
-    // desactivar la sesión de reproducción de inmediato (si queda cargada, la
-    // sesión persiste ~10-15 s y el dictado arranca sordo — bug del mic).
     ttsAudio.onended=()=>{
-      if(typeof micLog==="function") micLog("TTS ended → libero sesión de audio");  // DEBUG TEMPORAL mic
+      if(typeof micLog==="function") micLog("TTS(<audio>) ended");  // DEBUG TEMPORAL mic
       try{ ttsAudio.removeAttribute("src"); ttsAudio.load(); }catch(e){}
       if(opts.onEnd) opts.onEnd();
     };
     ttsAudio.src=url;
     currentAudio=ttsAudio;
-    if(typeof micLog==="function") micLog("TTS play() (ElevenLabs/server)");  // DEBUG TEMPORAL mic
+    if(typeof micLog==="function") micLog("TTS play() por <audio>");  // DEBUG TEMPORAL mic
     await ttsAudio.play();   // si iOS lo bloquea (no primeado), rechaza -> catch -> voz navegador
   }catch(err){
     console.warn("ElevenLabs falló, uso voz del navegador:", err.message);
@@ -1841,7 +1878,7 @@ function setupMic(btnId, targetInput, onFinal, composerId){
   }
 
   btn.onclick=async()=>{
-    micLog("tap mic (listening="+listening+", ttsAudio="+(ttsAudio?(ttsAudio.paused?"paused":"PLAYING"):"null")+", synth="+(("speechSynthesis" in window)&&speechSynthesis.speaking?"SPEAKING":"idle")+")");
+    micLog("tap mic (listening="+listening+", ctx="+(ttsCtx?ttsCtx.state:"null")+", ttsAudio="+(ttsAudio?(ttsAudio.paused?"paused":"PLAYING"):"null")+", synth="+(("speechSynthesis" in window)&&speechSynthesis.speaking?"SPEAKING":"idle")+")");
     primeAudio();   // desbloquea el audio de iOS mientras esto es un gesto de usuario
     if(listening){ micLog("→ ya escuchando: rec.stop()"); if(rec) rec.stop(); return; }
     const st=await micPermissionState();
