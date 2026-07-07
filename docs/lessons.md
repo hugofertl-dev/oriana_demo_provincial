@@ -38,7 +38,6 @@ NO sirve `new Audio()` por cada reproducción: cada elemento nuevo nace bloquead
 Son copias byte a byte. La app canónica es `index.html`; `oriana-mobile.html` es un
 espejo que se sirve como raíz del proxy local. Al editar, cambiar `index.html` y luego
 `cp index.html oriana-mobile.html`. `scripts/syntax_check.sh` bloquea si difieren.
-`oriana-demo.html` es una variante vieja/aparte — NO se sincroniza.
 
 ### La API key de ElevenLabs nunca va al cliente (2026-07-06)
 La voz usa la función serverless `/api/tts` (`netlify/functions/tts.js`, redirigida en
@@ -238,3 +237,12 @@ SÍ se vuelve `window.foo` (por eso los tests pueden llamar `window.isWebView()`
 (queda `undefined`). Moraleja para tests jsdom: una constante de texto (ej. `MSG_SIN_DICTADO`)
 no se puede leer vía `window`; verificar por el efecto observable (el `placeholder` del input)
 o por grep de fuente, no por `window.LACONSTANTE`.
+
+### `chipClick` está REASIGNADO a un wrapper — cuidado dónde va el fix (2026-07-07)
+La `function chipClick(text)` original (chat principal: pushUser+smartHandle) queda guardada
+en `_chipClick` y `chipClick` se REASIGNA a un wrapper (`const _chipClick=chipClick; chipClick=function(...)`)
+que, si la pantalla de niños está visible, maneja el chip por su cuenta (nbubble+ninosHandle)
+y NI llama a `_chipClick`. Moraleja: cualquier lógica que deba correr en TODOS los chips
+(ej. `cancelPending()` de los mics para no dejar mensaje fantasma al tocar un chip durante el
+dictado) va en el WRAPPER, no en la función original — si va en `_chipClick` no corre en la
+pantalla de niños. Repro permanente: test/chip-durante-dictado.test.js (caso "niños visible").

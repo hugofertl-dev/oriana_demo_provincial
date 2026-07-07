@@ -5,7 +5,7 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 rm -rf dist
 mkdir dist
-cp index.html oriana-mobile.html oriana-demo.html dist/
+cp index.html oriana-mobile.html dist/
 cp -R assets dist/assets
 echo "dist/ listo:"
 ls dist

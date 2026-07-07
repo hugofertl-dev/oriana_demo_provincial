@@ -2078,7 +2078,9 @@ function setupMic(btnId, targetInput, onFinal, composerId){
   // para que onend no vuelva a enviar lo que el usuario ya mandó a mano.
   function cancelPending(){
     squelched=true;
-    if(rec && listening){ try{ rec.abort(); }catch(e){} }
+    // Si había un dictado en curso, descartar su borrador a medio formar del input
+    // (el usuario lo abandonó al tocar Send/chip); NO tocar un texto tipeado (no listening).
+    if(rec && listening){ try{ rec.abort(); }catch(e){} targetInput.value=""; autoGrow(targetInput); }
   }
 
   btn.onclick=async()=>{
@@ -2316,6 +2318,11 @@ function sendNinos(){
 // chip clicks dentro de niños usan chipClick global -> redirigimos si estamos en pantalla niños
 const _chipClick=chipClick;
 chipClick=function(text){
+  // Tocar un chip mientras el mic dicta = mensaje fantasma: el onresult FINAL llega
+  // DESPUÉS del tap y onend auto-envía la transcripción (misma carrera que Send, ver
+  // dictado-doble-envio). Desarmar el dictado pendiente de ambos mics ANTES de enviar,
+  // en los dos caminos (pantalla de niños y chat principal).
+  micMain.cancelPending(); micNinos.cancelPending();
   replyWithVoice=false;
   const ninosVisible=!document.getElementById("screen-ninos").classList.contains("hidden");
   if(ninosVisible){

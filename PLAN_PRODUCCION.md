@@ -7,7 +7,7 @@
 > **cualquiera, desde cualquier dispositivo y red, la pruebe sin que se caiga
 > ni te deje ciego**.
 >
-> **Estado: EN CURSO (Fases 1-3 con código cerrado; Fases 4-5 pendientes).** Orden recomendado: 1 → 2 → 3 → 4 → 5.
+> **Estado: EN CURSO (Fases 1-4 con código cerrado; Fase 5 pendiente).** Orden recomendado: 1 → 2 → 3 → 4 → 5.
 > Fase 1 ítems 1-2 (rate-limit + CORS) IMPLEMENTADOS y cerrados (feature `rate-limit-apis`,
 > commit f0529c4, validado en deploy). Ítems 3-4 (spending limits + concurrencia) son acción
 > manual/operativa del usuario, sin código.
@@ -118,24 +118,26 @@ si los fallos llegan.
 
 ## FASE 4 — Superficies muertas y races restantes
 
-11. **⚠️ `oriana-demo.html` está podrido y SE PUBLICA.**
-    - Es el gemelo desktop viejo: sin chat LLM (motor regex directo), sin
-      ninguno de los fixes de estabilidad, y CON el bug del doble envío del
-      dictado (arreglado en index.html el 2026-07-07). Quien "prueba desde la
-      compu" y cae ahí ve una app peor.
-    - Decidir: (a) redirect a `index.html`, (b) sacarlo de
-      `scripts/stage_publish.sh`, o (c) actualizarlo (caro: es un fork viejo).
-      Recomendación: (a) o (b) — index.html ya es responsive.
+> **FASE 4 COMPLETA (código).** Ítem 11 (oriana-demo.html eliminado) e ítem 12 (chip
+> durante el dictado) RESUELTOS. Ítem 13 (typing solapados, cosmético) saltado por decisión.
 
-12. **Chips tocados durante el dictado (misma carrera del fix del doble envío).**
-    - Con el mic activo, tocar un chip envía el chip Y al terminar el dictado
-      `onend` auto-envía la transcripción → mensaje fantasma.
-    - Fix conocido: `chipClick` llama a `cancelPending()` de los dos mics
-      (patrón ya montado; ver test/dictado-doble-envio.test.js y lessons.md).
+11. **✅ RESUELTO (2026-07-07) — `oriana-demo.html` eliminado.** El gemelo desktop
+    viejo (sin chat LLM ni fixes de estabilidad) se borró del repo y del publish
+    (`scripts/stage_publish.sh`), y se limpiaron sus referencias (`verify.sh`,
+    hook `stop_verify.sh`, `oriana-proxy.py`, `docs/architecture.md`,
+    `docs/lessons.md`). Sin redirect: nadie tenía el link viejo (decisión del usuario).
+    `index.html` (responsive) es la única app; `oriana-mobile.html` su espejo.
 
-13. **Typing solapados (ítem 32 del plan viejo, cosmético).**
-    - Dos indicadores "escribiendo…" pueden convivir. Baja prioridad; se
-      encara solo si molesta en la prueba masiva.
+12. **✅ RESUELTO (2026-07-07) — chip durante el dictado ya no deja mensaje fantasma.**
+    El wrapper de `chipClick` llama a `cancelPending()` de ambos mics ANTES de enviar,
+    en los dos caminos (pantalla de niños y chat principal); además `cancelPending`
+    descarta el borrador a medio dictar del input (solo si había dictado vivo, no pisa
+    texto tipeado). Test rojo-primero `test/chip-durante-dictado.test.js` (11 checks) +
+    sabotage OK, sin regresión en dictado-doble-envio.
+
+13. **⏭️ SALTADO por ahora (cosmético) — typing solapados (ítem 32 del plan viejo).**
+    Dos indicadores "escribiendo…" pueden convivir. Baja prioridad; se encara solo si
+    molesta en la prueba masiva (decisión del usuario, 2026-07-07).
 
 ## FASE 5 — Endurecimiento y deuda del harness
 

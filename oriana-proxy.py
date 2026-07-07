@@ -2,7 +2,7 @@
 """
 Proxy local para la demo de ORIANA + ElevenLabs.
 
-Evita el error "Failed to fetch" (CORS) cuando abrís oriana-demo.html
+Evita el error "Failed to fetch" (CORS) cuando abrís la demo
 directamente en el navegador. El proxy recibe la llamada del navegador,
 le agrega tu API key y la reenvia a ElevenLabs, devolviendo el audio.
 

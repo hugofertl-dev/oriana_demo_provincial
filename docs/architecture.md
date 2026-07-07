@@ -17,8 +17,6 @@ perfil/documentos, y acompañamiento por violencia de género (línea 144).
 - **`index.html`** — app canónica y actual. **`oriana-mobile.html` es idéntico byte a byte**
   (ver `docs/lessons.md`: editar uno y copiar al otro). Pantallas:
   `login, home, chat, turnos, cerca, perfil, ninos, linda, evento`.
-- **`oriana-demo.html`** — variante vieja y más chica (`chat, turnos, cerca, perfil, ninos`).
-  No se despliega; no asumir que los cambios de `index.html` aplican acá.
 - **`oriana-proxy.py`** — server local (solo stdlib). Sirve los HTML en `http://localhost:8787`
   y proxea POSTs a ElevenLabs inyectando el `xi-api-key` que manda el navegador. Da un origen
   seguro para que el permiso de micrófono persista y evita CORS en pruebas locales.

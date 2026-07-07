@@ -10,7 +10,7 @@
 # marca .verify_ok coincide con el estado actual del working tree.
 
 # ── CONFIGURACIÓN ───────────────────────────────────────────────────────────
-SRC_DIRS="index.html oriana-mobile.html oriana-demo.html api netlify oriana-proxy.py"  # mismos dirs que en scripts/verify.sh
+SRC_DIRS="index.html oriana-mobile.html api netlify oriana-proxy.py"  # mismos dirs que en scripts/verify.sh
 VERIFY_LEVEL="quick"        # nivel mínimo exigido para poder terminar un turno
 # ────────────────────────────────────────────────────────────────────────────
 
