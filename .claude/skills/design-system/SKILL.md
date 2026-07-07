@@ -30,6 +30,7 @@ del apartado más parecido; no inventar clases nuevas si ya existe una.
 | **Conversación / chat** | `#screen-chat` + clases `.msg`/`.bubble`/`.who`/`.chips`/`.chip`/`.typing` | Referencia canónica del proyecto (elegida por el usuario). Burbuja bot vs. usuario, fila de chips de acción, indicador de tipeo. Cualquier interacción conversacional nueva se clona de acá. |
 | Tarjeta de dato | `.card` + `.row` + `.badge` (g/a) | Beneficios, turnos, perfil. Badge verde = activo, ámbar = pendiente. |
 | Navegación inferior | `.navbtn[data-screen]` | Una pantalla por botón; registrar la screen en `const screens`. |
+| **Modal / bottom-sheet** | `.modal-bg` + `.modal` + `.modal-h`/`.modal-lead`/`.modal-foot` + `.btn-ghost`/`.btn-solid` + `.modal-note`(`.ok`/`.err`) | Instancia de referencia: `#micModal` (panel de permiso de micrófono). Abrir con `.open` en `.modal-bg`; cerrar tocando el fondo. Poner `role="dialog"` + `aria-modal` en `.modal`. |
 
 ## Convenciones aprobadas
 

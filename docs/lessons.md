@@ -13,6 +13,27 @@
 
 <!-- Entradas: -->
 
+### iOS Safari: el micrófono (getUserMedia) solo anda en https y el "no" se pega por-sitio (2026-07-06)
+`navigator.mediaDevices.getUserMedia` en iOS Safari: (1) requiere **https** (contexto
+seguro) — en http/LAN el API ni existe y no se puede pedir permiso; (2) el prompt del
+sistema **solo** aparece si se llama a getUserMedia **dentro de un gesto de usuario**
+(por eso el botón "Activar" del panel llama getUserMedia directo, no tras un await);
+(3) si el usuario deniega/descarta una vez, iOS lo recuerda **por-sitio** y **NUNCA vuelve
+a preguntar** (aunque Ajustes › Safari › Micrófono esté en "Preguntar"): `getUserMedia`
+rechaza al instante con `NotAllowedError`. Fix del lado del usuario: **aA › Ajustes del
+sitio web › Micrófono › Permitir**, o **Ajustes › Safari › Avanzado › Datos de sitios web →
+borrar el sitio**. No hay forma de resetearlo desde JS.
+
+### iOS Safari: autoplay de audio bloqueado tras un await — primear un <audio> reusado (2026-07-06)
+iOS bloquea `Audio.play()` si no está "pegado" a un gesto de usuario. En `speak()` el audio
+llega **después** de un `await` (fetch de TTS al servidor), así que el gesto original ya
+expiró → play() rechaza en silencio (y sin await, la promesa rechazada queda sin manejar).
+Solución (en `index.html`): reusar **UN solo** elemento `<audio>` (`ttsAudio`) y
+"desbloquearlo" con `primeAudio()` (reproduce un clip WAV silencioso generado al vuelo)
+**durante el toque del micrófono**; luego `speak()` reproduce sobre ese mismo elemento ya
+habilitado y hace `await ttsAudio.play()` (si aún se bloquea, cae a la voz del navegador).
+NO sirve `new Audio()` por cada reproducción: cada elemento nuevo nace bloqueado.
+
 ### index.html y oriana-mobile.html deben ser idénticos (2026-07-06)
 Son copias byte a byte. La app canónica es `index.html`; `oriana-mobile.html` es un
 espejo que se sirve como raíz del proxy local. Al editar, cambiar `index.html` y luego
