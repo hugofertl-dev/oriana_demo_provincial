@@ -954,7 +954,7 @@ async function elevenSpeak(text){
     headers:{ "xi-api-key":key, "Content-Type":"application/json", "Accept":"audio/mpeg" },
     body:JSON.stringify({
       text,
-      model_id:"eleven_multilingual_v2",
+      model_id:"eleven_flash_v2_5",   // mismo modelo rápido que usa tts.js
       voice_settings:{ stability:EL.stab, similarity_boost:0.75, style:EL.style, use_speaker_boost:true }
     })
   }, 10000);
@@ -1192,6 +1192,17 @@ async function llmHandle(text){
     if(epoch!==llmEpoch) return true;   // error de un request ya invalidado por reset: no tocar la sesión nueva
     console.warn("Chat LLM error:", err.message);
     llmHistory.pop();          // sacamos el turno que falló (se reintenta limpio)
+    // 429/529 = servicio saturado, NO caído: reintentar al toque lo agrava. Se pide
+    // esperar con el chip deshabilitado ~5 s y no cuenta para llmDisabled.
+    const mSat=err.message.match(/HTTP (429|529)/);
+    if(mSat){
+      const cid="retry-"+Date.now();
+      pushBot(`Estoy recibiendo muchas consultas en este momento 📡. Dame unos segunditos y probamos de nuevo…`+
+        `<div class="chips"><span class="chip solid" id="${cid}" style="opacity:.45;pointer-events:none" onclick="chipClick('${chipAttr(text)}')">🔄 Reintentar</span></div>`,
+        "Estoy recibiendo muchas consultas. Dame unos segundos y probamos de nuevo.");
+      setTimeout(()=>{ const c=document.getElementById(cid); if(c){ c.style.opacity=""; c.style.pointerEvents=""; } },5000);
+      return true;
+    }
     llmFailCount++;
     if(llmFailCount>=3){
       // Fallo persistente (ej. sin LLM_API_KEY o servicio caído): degradar a modo básico y responder igual.
@@ -2219,6 +2230,16 @@ setupMic("micBtn2", input2, (t)=>{ nbubble("Yo",esc(t)); input2.value=""; autoGr
    ============================================================ */
 window.addEventListener("load",()=>{ if("speechSynthesis" in window) speechSynthesis.getVoices(); });
 updateVoicePill();
+
+// Warm-up del backend: el PRIMER mensaje tras inactividad paga el cold start de la
+// función serverless — justo al arrancar la demo. Un OPTIONS barato (sin tokens ni
+// audio) la despierta mientras la usuaria todavía está en el login.
+window.addEventListener("load",()=>{
+  setTimeout(()=>{
+    fetch("/api/chat",{method:"OPTIONS"}).catch(()=>{});
+    fetch("/api/tts",{method:"OPTIONS"}).catch(()=>{});
+  },800);
+});
 
 // Teclado virtual en iOS: el layout NO se achica (interactive-widget solo lo respeta
 // Android Chrome), pero visualViewport sí. --kb = alto tapado por el teclado; el

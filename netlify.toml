@@ -5,6 +5,13 @@
   publish = "."
   functions = "netlify/functions"
 
+# Las fotos (~fijas) se cachean fuerte: sin esto los 6 JPEG se revalidan en cada
+# visita. Los HTML quedan con max-age=0 (default) a propósito: se actualizan al toque.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
 # El frontend llama a /api/tts -> lo redirige a la función serverless
 [[redirects]]
   from = "/api/tts"

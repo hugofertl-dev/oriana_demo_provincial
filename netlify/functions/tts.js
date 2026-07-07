@@ -8,7 +8,9 @@
      ELEVENLABS_VOICE_ID  (id de la voz argentina)
    ══════════════════════════════════════════════════════════════════ */
 
-const EL_MODEL = "eleven_multilingual_v2";
+// flash v2.5: ~75 ms de inferencia vs varios segundos del multilingual v2 (el
+// modelo "lento" de calidad). Si la voz argentina suena peor acá, volver atrás.
+const EL_MODEL = "eleven_flash_v2_5";
 
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") {
