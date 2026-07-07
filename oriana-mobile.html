@@ -281,6 +281,7 @@
   .modal-note.ok{color:var(--green)}.modal-note.err{color:var(--red)}
   .mic-steps{font-size:12.5px;color:var(--ink-soft);line-height:1.7;padding-left:20px;margin:2px 0 10px}
   .mic-steps b{color:var(--ink)}
+  .tellink{color:inherit;text-decoration:underline;text-underline-offset:2px;font-weight:inherit}
   /* ---------- AUTH (login / alta) ---------- */
   .login-fld input{color:var(--ink);background:#fff}
   .login-btn.solid{background:var(--teal);color:#fff;cursor:pointer}
@@ -540,10 +541,10 @@
    ============================================================ */
 const DB = {
   ciudadano: {
-    nombre:"María González", dni:"32.456.789", barrio:"Barrio Centro",
-    ubicacion:{ref:"Barrio Centro", x:0, y:0},
-    contacto:"+54 9 300 555-0142", email:"maria.gonzalez@correo.com",
-    grupo:"O+", obra_social:"Salud Pública Provincial", cuil:"27-32456789-3",
+    nombre:"María González", dni:"32.456.789", barrio:"Barrio Centro, Posadas",
+    ubicacion:{ref:"Barrio Centro, Posadas", x:0, y:0},
+    contacto:"+54 9 376 555-0142", email:"maria.gonzalez@correo.com",
+    grupo:"O+", obra_social:"Salud Pública de Misiones", cuil:"27-32456789-3",
     hijos:[{nombre:"Lucía", edad:"3 años"},{nombre:"Tomás", edad:"7 años"}]
   },
   documentos:[
@@ -560,26 +561,26 @@ const DB = {
   ],
   barrios:[
     {nombre:"Centro", xy:[0,0]},
-    {nombre:"Barrio Norte", xy:[0,3]},
-    {nombre:"Barrio Sur", xy:[0,-5.5]},
-    {nombre:"Barrio Oeste", xy:[-4,0.5]}
+    {nombre:"Villa Cabello", xy:[-3,2]},
+    {nombre:"Villa Sarita", xy:[2,-1.5]},
+    {nombre:"Itaembé Miní", xy:[-7,-1]}
   ],
   hospitales:[
-    {nombre:"Hospital Central Provincial", dir:"Av. San Martín 1200, Centro", xy:[0.2,0.3], tel:"0800-333-1000", especialidades:["Pediatría","Guardia 24h","Clínica médica","Cardiología"], guardia:true},
-    {nombre:"Hospital Materno Infantil", dir:"Calle Belgrano 540, Centro", xy:[0.4,0.6], tel:"0800-333-1002", especialidades:["Pediatría","Neonatología","Obstetricia","Guardia 24h"], guardia:true},
-    {nombre:"Centro de Salud Barrio Norte", dir:"Los Álamos 87, B. Norte", xy:[0.2,2.7], tel:"0800-333-1010", especialidades:["Clínica médica","Odontología","Vacunatorio"], guardia:false},
-    {nombre:"Hospital Regional Sur", dir:"Ruta 4 km 6, B. Sur", xy:[0.3,-5.2], tel:"0800-333-1020", especialidades:["Traumatología","Cirugía","Guardia 24h","Pediatría"], guardia:true}
+    {nombre:"Hospital Escuela de Agudos Dr. Ramón Madariaga", dir:"Av. Marconi 3736 · Parque de la Salud, Posadas", xy:[-1.5,1.2], tel:"(0376) 444-3700", especialidades:["Clínica médica","Cardiología","Traumatología","Guardia 24h"], guardia:true},
+    {nombre:"Hospital Materno Neonatal", dir:"Av. Marconi s/n · Parque de la Salud, Posadas", xy:[-1.6,1.4], tel:"(0376) 444-3700", especialidades:["Obstetricia","Neonatología","Guardia 24h"], guardia:true},
+    {nombre:"Hospital de Pediatría Dr. Fernando Barreyro", dir:"Av. Mariano Moreno 110, Posadas", xy:[0.3,0.4], tel:"0800-444-3400", especialidades:["Pediatría","Vacunatorio","Guardia 24h"], guardia:true},
+    {nombre:"Hospital de Fátima Dr. René Favaloro", dir:"Barrio Fátima · zona sur, Posadas", xy:[1.5,-4.5], tel:"0800-444-3400", especialidades:["Clínica médica","Pediatría","Odontología","Guardia 24h"], guardia:true}
   ],
   policia:[
-    {nombre:"Comisaría 1ra — Centro", dir:"Rivadavia 340, Centro", xy:[0.1,0.2], tel:"911 / 4212-100", guardia:true},
-    {nombre:"Destacamento Barrio Norte", dir:"Los Álamos 210, B. Norte", xy:[0.2,2.4], tel:"911 / 4212-140", guardia:true},
-    {nombre:"Comisaría de la Mujer", dir:"Sarmiento 88, Centro", xy:[-0.2,0.4], tel:"911 / 144", guardia:true},
-    {nombre:"Comisaría 4ta — Sur", dir:"Ruta 4 km 5, B. Sur", xy:[0.2,-5.0], tel:"911 / 4212-190", guardia:true}
+    {nombre:"Comisaría Seccional 1ra — Centro", dir:"Centro, Posadas", xy:[0.1,0.2], tel:"911", guardia:true},
+    {nombre:"Comisaría de la Mujer y la Familia", dir:"Centro, Posadas", xy:[-0.2,0.4], tel:"911 / 144", guardia:true},
+    {nombre:"Comisaría Seccional 8va — Villa Cabello", dir:"Villa Cabello, Posadas", xy:[-2.8,1.9], tel:"911", guardia:true},
+    {nombre:"Comisaría Seccional 16ta — Itaembé Miní", dir:"Itaembé Miní, Posadas", xy:[-6.8,-0.9], tel:"911", guardia:true}
   ],
   especialidades:["Pediatría","Clínica médica","Odontología","Cardiología","Traumatología","Obstetricia"],
   turnos_agenda:["Mié 8/07 · 09:30","Mié 8/07 · 11:00","Jue 9/07 · 08:15","Jue 9/07 · 15:40","Vie 10/07 · 10:20"],
   turnos_activos:[
-    {hospital:"Hospital Central Provincial", esp:"Clínica médica", cuando:"Vie 10/07 · 10:20", estado:"Confirmado"}
+    {hospital:"Hospital Escuela de Agudos Dr. Ramón Madariaga", esp:"Clínica médica", cuando:"Vie 10/07 · 10:20", estado:"Confirmado"}
   ],
   reclamos:[]
 };
@@ -879,6 +880,7 @@ function bubble(who, html, extra=""){
   const m=document.createElement("div");
   m.className="msg "+(who==="O"?"bot":"user");
   m.innerHTML=`<div class="who">${who}</div><div class="bubble">${html}${extra}</div>`;
+  if(who==="O") linkifyTels(m);
   chatlog.appendChild(m);
   chatlog.parentElement.scrollTop=1e9;
   window.scrollTo(0,1e9);
@@ -887,6 +889,32 @@ function bubble(who, html, extra=""){
 }
 function pushUser(t){ bubble("Yo", esc(t)); }
 function pushBot(html, spoken){ const m=bubble("O", html); if(spoken) speak(spoken); return m; }
+
+// Convierte teléfonos visibles (911/144/107, 0800-..., (0376) ...) en links tel:
+// tocables. Trabaja SOLO sobre nodos de texto (nunca toca atributos/onclick) y
+// saltea lo que ya está dentro de un <a> o de un chip (que tiene su propio tap).
+const RX_TEL=/(\(?0\d{2,4}\)?[ -]?\d{3}[ -]?\d{4}|\b(?:911|144|107)\b)/g;
+function linkifyTels(root){
+  if(!root) return;
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null);
+  const nodes=[]; let n;
+  while((n=walker.nextNode())){
+    if(n.parentElement && !n.parentElement.closest("a,.chip,script,style")) nodes.push(n);
+  }
+  nodes.forEach(node=>{
+    const txt=node.nodeValue;
+    RX_TEL.lastIndex=0; if(!RX_TEL.test(txt)) return; RX_TEL.lastIndex=0;
+    const frag=document.createDocumentFragment(); let last=0, m;
+    while((m=RX_TEL.exec(txt))){
+      frag.appendChild(document.createTextNode(txt.slice(last,m.index)));
+      const a=document.createElement("a");
+      a.className="tellink"; a.href="tel:"+m[0].replace(/[^\d+]/g,""); a.textContent=m[0];
+      frag.appendChild(a); last=m.index+m[0].length;
+    }
+    frag.appendChild(document.createTextNode(txt.slice(last)));
+    node.parentNode.replaceChild(frag,node);
+  });
+}
 function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 
 function typing(cb){
@@ -898,10 +926,111 @@ function typing(cb){
 }
 function scrollChat(){ document.getElementById("screen-chat").scrollTop=1e9; }
 
-function chipRow(items){
-  return `<div class="chips">${items.map(i=>`<span class="chip${i.solid?' solid':''}" onclick="chipClick('${i.send.replace(/'/g,"\\'")}')">${i.label}</span>`).join("")}</div>`;
+// Escape completo para el valor que viaja dentro de onclick="chipClick('...')":
+// primero como string JS (\\ y \'), después como atributo HTML (& < > ").
+// Necesario porque las sugerencias del LLM también llegan acá.
+function chipAttr(s){
+  return esc(String(s).replace(/\\/g,"\\\\").replace(/'/g,"\\'")).replace(/"/g,"&quot;");
 }
-function chipClick(text){ replyWithVoice=false; pushUser(text); handle(text); }
+function chipRow(items){
+  return `<div class="chips">${items.map(i=>`<span class="chip${i.solid?' solid':''}" onclick="chipClick('${chipAttr(i.send)}')">${i.label}</span>`).join("")}</div>`;
+}
+function chipClick(text){ replyWithVoice=false; pushUser(text); smartHandle(text); }
+
+/* ============================================================
+   CHAT CON LLM (Claude vía /api/chat) — con fallback al motor regex
+   El LLM conduce la conversación (solo temas de la demo, datos de
+   Misiones); las ACCIONES (turno/reclamo) las ejecuta la app contra
+   la DB simulada. Si /api/chat falla, cae al motor local (handle).
+   ============================================================ */
+const USE_LLM = true;
+let llmDisabled = false;   // tras el primer fallo, la sesión sigue con el motor local
+let llmHistory = [];       // [{role:"user"|"assistant", content}]
+
+function llmContext(){
+  const c=DB.ciudadano;
+  return {
+    ciudadano:{ nombre:c.nombre, barrio:c.barrio },
+    hospitales:DB.hospitales.map(h=>({nombre:h.nombre, dir:h.dir, tel:h.tel, especialidades:h.especialidades, guardia:h.guardia})),
+    policia:DB.policia.map(p=>({nombre:p.nombre, dir:p.dir, tel:p.tel})),
+    barrios:DB.barrios.map(b=>b.nombre),
+    beneficios:DB.beneficios.map(b=>({nombre:b.nombre, detalle:b.detalle, monto:b.monto, periodo:b.periodo, estado:b.estado})),
+    especialidades:DB.especialidades,
+    turnos_agenda:DB.turnos_agenda,
+    turnos_activos:DB.turnos_activos,
+    reclamos:DB.reclamos.map(r=>({id:r.id, titulo:r.titulo, estado:r.estado}))
+  };
+}
+
+// Ejecuta la acción que decidió el LLM contra la DB simulada y devuelve el
+// HTML extra (tarjeta de turno/ticket). El número de ticket lo genera la app.
+function ejecutarAccion(a){
+  if(!a || !a.type) return "";
+  if(a.type==="crear_turno" && a.hospital && a.especialidad && a.horario){
+    DB.turnos_activos.push({hospital:a.hospital, esp:a.especialidad, cuando:a.horario, estado:"Confirmado"});
+    return `<div class="card"><div class="row"><span>🗓️ ${esc(a.especialidad)}</span><span class="badge g">Confirmado</span></div>`+
+      `<div class="row"><span>Hospital</span><b>${esc(a.hospital)}</b></div>`+
+      `<div class="row"><span>Cuándo</span><b>${esc(a.horario)}</b></div></div>`;
+  }
+  if(a.type==="crear_reclamo" && a.tipo_reclamo){
+    const id=nuevoTicketId(a.tipo_reclamo);
+    const titulo=`${a.problema||"Reclamo"} — ${a.lugar||"Misiones"}`;
+    DB.reclamos.push({id, tipo:a.tipo_reclamo, titulo, resumen:a.descripcion||"", estado:"En gestión", detalle:a});
+    const ico=a.tipo_reclamo==="elec"?"⚡":"🏥";
+    return `<div class="card"><div class="row"><span>${ico} ${esc(titulo)}</span><span class="badge a">En gestión</span></div>`+
+      `<div class="row"><span>Ticket</span><b>${id}</b></div></div>`+
+      `<div class="bubble hint" style="margin-top:8px">Lo agregué a "Mis reclamos". Te avisaré cuando haya novedades.</div>`;
+  }
+  if(a.type==="derivar_acompanamiento"){
+    return chipRow([{label:"Abrir espacio de acompañamiento 💜", send:"__ninos", solid:true}]);
+  }
+  return "";
+}
+
+async function llmHandle(text){
+  llmHistory.push({role:"user", content:text});
+  const t=document.createElement("div");            // typing persistente (el local dura 650ms fijos)
+  t.className="msg bot typing";
+  t.innerHTML=`<div class="who">O</div><div class="bubble"><span></span><span></span><span></span></div>`;
+  chatlog.appendChild(t); scrollChat();
+  try{
+    const res=await fetch("/api/chat",{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ messages:llmHistory, context:llmContext() })
+    });
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const out=await res.json();
+    if(typeof out.reply!=="string" || !out.reply.trim()) throw new Error("respuesta sin reply");
+    t.remove();
+    llmHistory.push({role:"assistant", content:out.reply});
+    const extra = ejecutarAccion(out.action) +
+      (Array.isArray(out.sugerencias)&&out.sugerencias.length
+        ? chipRow(out.sugerencias.slice(0,3).map(s=>({label:esc(String(s)), send:String(s)})))
+        : "");
+    pushBot(esc(out.reply).replace(/\n/g,"<br>")+extra, out.reply);
+    return true;
+  }catch(err){
+    t.remove();
+    console.warn("Chat LLM falló, sigo con el motor local:", err.message);
+    llmHistory.pop();          // ese turno lo va a responder el motor local
+    llmDisabled=true;
+    return false;
+  }
+}
+
+// Un solo llmHandle a la vez: si el usuario manda otro mensaje mientras hay uno
+// en vuelo, se encola y se procesa al terminar (evita historia desordenada y
+// que el pop() del catch saque el turno equivocado).
+let llmBusy=false; const llmQueue=[];
+function smartHandle(text){
+  if(text.startsWith("__")){ handle(text); return; }          // atajos internos (__ninos, __tele)
+  if(!USE_LLM || llmDisabled){ handle(text); return; }
+  if(llmBusy){ llmQueue.push(text); return; }
+  llmBusy=true;
+  llmHandle(text)
+    .then(ok=>{ if(!ok) handle(text); })
+    .finally(()=>{ llmBusy=false; if(llmQueue.length) smartHandle(llmQueue.shift()); });
+}
 
 /* ============================================================
    MOTOR DE INTENCIONES (simulado)
@@ -1387,7 +1516,7 @@ sendBtn.onclick=sendMain;
 function sendMain(){
   const t=input.value.trim(); if(!t) return;
   replyWithVoice=false;                 // escribió -> responde por texto
-  pushUser(t); input.value=""; autoGrow(input); handle(t);
+  pushUser(t); input.value=""; autoGrow(input); smartHandle(t);
 }
 
 /* ============================================================
@@ -1503,7 +1632,7 @@ function setupMic(btnId, targetInput, onFinal, composerId){
     openMicPanel(startDictation);   // explica + dispara getUserMedia; si concede, arranca el dictado
   };
 }
-setupMic("micBtn", input, (t)=>{ pushUser(t); input.value=""; autoGrow(input); handle(t); }, "composer");
+setupMic("micBtn", input, (t)=>{ pushUser(t); input.value=""; autoGrow(input); smartHandle(t); }, "composer");
 
 /* ============================================================
    PANELES
@@ -1512,9 +1641,10 @@ function renderTurnos(){
   const el=document.getElementById("turnosList"); el.innerHTML="";
   if(DB.turnos_activos.length===0){ el.innerHTML=`<div class="benefit"><div class="ico">🗓️</div><div class="info"><h4>No tenés turnos</h4><p>Sacá uno hablando con ORIANA.</p></div></div>`; return; }
   DB.turnos_activos.forEach(t=>{
+    // esc(): estos datos ahora pueden venir de la respuesta del LLM (crear_turno).
     el.innerHTML+=`<div class="benefit"><div class="ico">🗓️</div>
-      <div class="info"><h4>${t.esp} — ${t.hospital}</h4><p>${t.cuando}</p></div>
-      <div class="amt"><span class="badge g">${t.estado}</span></div></div>`;
+      <div class="info"><h4>${esc(t.esp)} — ${esc(t.hospital)}</h4><p>${esc(t.cuando)}</p></div>
+      <div class="amt"><span class="badge g">${esc(t.estado)}</span></div></div>`;
   });
 }
 let currentKind="hospital";
@@ -1538,6 +1668,7 @@ function renderCerca(kind){
       <p>${p.dir} · ${p.tel}${p.guardia?' · Guardia 24h':''}</p></div>
       <div class="dist"><b>${p.dist} km</b><span>a ${Math.round(p.dist*13)} min</span></div></div>`;
   });
+  linkifyTels(el);
 }
 function renderPerfil(){
   const c=DB.ciudadano;
@@ -1564,6 +1695,7 @@ function nbubble(who,html){
   const m=document.createElement("div");
   m.className="msg "+(who==="O"?"bot":"user");
   m.innerHTML=`<div class="who">${who}</div><div class="bubble">${html}</div>`;
+  if(who==="O") linkifyTels(m);
   ninosLog.appendChild(m);
   document.getElementById("screen-ninos").scrollTop=1e9;
   return m;
@@ -1744,7 +1876,7 @@ updateVoicePill();
 function startAssistant(){
   // Siempre arranca una conversación nueva
   const log=document.getElementById("chatlog"); if(log) log.innerHTML="";
-  flow=null; replyWithVoice=false;
+  flow=null; replyWithVoice=false; llmHistory=[];
   stopAudio();
   show("chat");   // como el chat está vacío, dispara greet() de nuevo
   setTimeout(()=>{ const inp=document.getElementById("input"); if(inp) inp.focus(); },300);
@@ -1758,34 +1890,34 @@ function renderHome(){
 const EVENTOS=[
   {id:"e1", cat:"Arte y cultura", emo:"💃", date:"6/7/2026", tall:true,
    grad:"linear-gradient(135deg,#2b1a2e,#7a2f52,#b64a6a)",
-   t:"Milonga de Campeones en la Casa de la Cultura: tango, clases y show",
-   lugar:"Casa de la Cultura · Centro", hora:"21:00 a 01:00", precio:"Entrada libre",
-   desc:"Una noche a puro tango en la Casa de la Cultura. Clase abierta para principiantes a las 21:00, seguida de una milonga con orquesta en vivo y la presentación de campeones nacionales de tango de pista. Ambiente familiar, buffet y estacionamiento. No se requiere pareja ni experiencia previa."},
+   t:"Peña de chamamé en el Anfiteatro Manuel Antonio Ramírez",
+   lugar:"Anfiteatro M. A. Ramírez · Costanera de Posadas", hora:"21:00 a 01:00", precio:"Entrada libre",
+   desc:"Una noche a puro chamamé frente al río Paraná. Conjuntos misioneros y correntinos en vivo, clase abierta de baile a las 21:00 y patio de comidas típicas. Ambiente familiar. No se requiere pareja ni experiencia previa."},
   {id:"e2", cat:"Entretenimiento", emo:"🏮", date:"6/7/2026", tall:false,
    grad:"linear-gradient(135deg,#3a0d1a,#7c1f2f,#c0392b)",
-   t:"Noche de los Faroles en el Parque Municipal",
-   lugar:"Parque Municipal · Barrio Norte", hora:"19:00 a 23:00", precio:"Gratis",
-   desc:"El parque se ilumina con miles de faroles y esculturas de luz. Recorrido peatonal, food trucks, espectáculos itinerantes y una zona de juegos para los más chicos. Ideal para ir en familia."},
+   t:"Feria y patio gastronómico en la Costanera de Posadas",
+   lugar:"Costanera · playa El Brete", hora:"19:00 a 23:00", precio:"Gratis",
+   desc:"La costanera se llena de puestos de artesanos, food trucks y espectáculos itinerantes, con la bahía El Brete iluminada. Zona de juegos para los más chicos. Ideal para ir en familia."},
   {id:"e3", cat:"Música y Shows", emo:"🎸", date:"7/7/2026", tall:false,
    grad:"linear-gradient(135deg,#241a12,#5a3a22,#8a5a2b)",
-   t:"Ricardo Arjona | Lo que el Seco no dijo",
-   lugar:"Estadio Provincial", hora:"21:30", precio:"Desde $18.000",
-   desc:"El cantautor guatemalteco llega con su nueva gira presentando su último disco y repasando sus clásicos. Un show íntimo con banda completa y puesta escénica renovada. Entradas por sectores en venta online."},
+   t:"Música en vivo en el Teatro Lírico del Parque del Conocimiento",
+   lugar:"Parque del Conocimiento · Posadas", hora:"21:30", precio:"Desde $18.000",
+   desc:"Gran show con banda completa en la sala mayor del Parque del Conocimiento, una de las más importantes del NEA. Puesta escénica renovada y entradas por sectores en venta online."},
   {id:"e4", cat:"Recorridos y visitas guiadas", emo:"🏛️", date:"8/7/2026", tall:true,
    grad:"linear-gradient(135deg,#12303a,#1d5a6b,#2a8fa5)",
-   t:"Recorrido histórico por el Casco Antiguo",
-   lugar:"Punto de encuentro: Plaza Central", hora:"10:00 y 16:00", precio:"Gratis con inscripción",
-   desc:"Caminata guiada por los edificios patrimoniales del casco histórico, con relatos sobre la fundación de la ciudad, la arquitectura colonial y sus personajes. Dura aproximadamente 90 minutos. Cupos limitados."},
-  {id:"e5", cat:"Gastronomía", emo:"🍷", date:"9/7/2026", tall:false,
+   t:"Recorrido histórico por el centro de Posadas",
+   lugar:"Punto de encuentro: Plaza 9 de Julio", hora:"10:00 y 16:00", precio:"Gratis con inscripción",
+   desc:"Caminata guiada desde la Plaza 9 de Julio: Catedral, Casa de Gobierno y los edificios patrimoniales del casco céntrico, con relatos sobre la fundación de la ciudad y su historia jesuítica. Dura aproximadamente 90 minutos. Cupos limitados."},
+  {id:"e5", cat:"Gastronomía", emo:"🧉", date:"9/7/2026", tall:false,
    grad:"linear-gradient(135deg,#2a1220,#6d2436,#a83e57)",
-   t:"Feria de vinos y sabores regionales",
-   lugar:"Costanera · Barrio Sur", hora:"12:00 a 22:00", precio:"$3.000 (copa incluida)",
-   desc:"Bodegas y productores de la región presentan sus vinos, quesos y conservas artesanales. Degustaciones, maridajes guiados y música en vivo frente al río."},
+   t:"Degustación de productos misioneros: yerba, té y frutas tropicales",
+   lugar:"Mercado Concentrador Zonal · Posadas", hora:"12:00 a 22:00", precio:"$3.000 (kit de mate incluido)",
+   desc:"Productores de toda la provincia presentan yerba mate, té, mamón, ananá y conservas artesanales. Degustaciones guiadas, ronda de mate y música en vivo."},
   {id:"e6", cat:"Deporte", emo:"🏃", date:"12/7/2026", tall:false,
    grad:"linear-gradient(135deg,#102a1c,#1d5a3a,#2a8f5a)",
-   t:"Maratón Ciudad 10K y caminata familiar",
-   lugar:"Largada: Parque Municipal", hora:"08:00", precio:"Inscripción gratuita",
-   desc:"Circuito de 10K para corredores y una caminata recreativa de 3K para toda la familia. Hidratación, guardarropa y kit del corredor. Inscripción previa obligatoria en los centros municipales."}
+   t:"Maratón de la Costanera 10K y caminata familiar",
+   lugar:"Largada: Costanera de Posadas", hora:"08:00", precio:"Inscripción gratuita",
+   desc:"Circuito de 10K por la costanera del Paraná y una caminata recreativa de 3K para toda la familia. Hidratación, guardarropa y kit del corredor. Inscripción previa obligatoria."}
 ];
 let favs={};
 function evCard(e, i){
@@ -1869,6 +2001,9 @@ if(location.protocol==="file:"){
     if(host&&a) host.insertBefore(el, a);
   });
 }
+
+// Teléfonos tocables en los pies estáticos (911/144 del Acompañamiento).
+document.querySelectorAll("#screen-ninos .foot").forEach(linkifyTels);
 
 initAuth();
 </script>

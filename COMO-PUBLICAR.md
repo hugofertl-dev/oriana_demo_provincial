@@ -11,6 +11,11 @@ Vas a necesitar dos datos de tu cuenta ElevenLabs:
 - **API Key** (empieza con `sk_...`)
 - **Voice ID** de la voz argentina (My Voices → ⋯ → Copy Voice ID)
 
+Además, el **chat con IA** (Claude/Anthropic) usa otra función serverless
+(`netlify/functions/chat.js`, endpoint `/api/chat`) con su propia variable:
+- **`LLM_API_KEY`** — API key de Anthropic. Si falta, el chat cae solo al
+  motor local por reglas (la demo no se rompe, responde más rígida).
+
 ---
 
 ## Publicar en Netlify
@@ -35,6 +40,7 @@ por ElevenLabs necesitás deploy desde Git o con la CLI. La forma más simple:
 3. En Site settings → Environment variables, agregá:
    - `ELEVENLABS_API_KEY`
    - `ELEVENLABS_VOICE_ID`
+   - `LLM_API_KEY` (Anthropic, para el chat con IA)
 4. Deploy. Listo.
 
 Archivos que usa Netlify: `netlify.toml` y `netlify/functions/tts.js`.

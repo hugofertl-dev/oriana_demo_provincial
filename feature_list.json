@@ -31,7 +31,7 @@
       "blockedBy": [],
       "owner": "hugo",
       "creada": "2026-07-06",
-      "notas": "Aprobado: LLM conduce todo (temas restringidos), Acompañamiento sigue guionado, tel: en toda la app, DB y eventos con datos reales de Misiones (validar datos con el usuario antes de cargar), fallback a regex, modelo claude-opus-4-8."
+      "notas": "Aprobado: LLM conduce todo (temas restringidos), Acompañamiento sigue guionado, tel: en toda la app, DB y eventos con datos reales de Misiones (validar datos con el usuario antes de cargar), fallback a regex, modelo claude-sonnet-5 (bajado de Opus por costo del endpoint público, decisión del usuario)."
     }
   ]
 }
