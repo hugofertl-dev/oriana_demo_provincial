@@ -1774,7 +1774,7 @@ function setupMic(btnId, targetInput, onFinal, composerId){
   const rec = SR ? new SR() : null;
   let listening=false;
 
-  function startDictation(){
+  async function startDictation(){
     if(!rec){ // navegador sin dictado: fallback simulado
       comp.classList.add("rec"); btn.classList.add("on");
       targetInput.placeholder="🎙️ Escuchando... (tu navegador no soporta dictado, simulando)";
@@ -1784,6 +1784,20 @@ function setupMic(btnId, targetInput, onFinal, composerId){
         targetInput.value=demo; replyWithVoice=true; onFinal(demo,true);
       },1600);
       return;
+    }
+    // iOS/WebKit: tras reproducir TTS por <audio>, la sesión de audio del sistema
+    // queda en "reproducción" y el dictado arranca SORDO (onstart sin onresult).
+    // Cura: soltar el audio de reproducción y reactivar la captura con un stream
+    // de mic fresco ANTES de rec.start(). Con permiso concedido no re-pregunta.
+    stopAudio();
+    if(ttsAudio){ try{ ttsAudio.removeAttribute("src"); ttsAudio.load(); }catch(e){} }
+    if(_micStream && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+      try{
+        const old=_micStream;
+        _micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+        old.getTracks().forEach(tr=>tr.stop());
+        micLog("mic stream refrescado (captura reactivada)");
+      }catch(e){ micLog("refresh de stream FALLÓ: "+e.name+" — "+e.message); }
     }
     micLog("rec.start() →");
     try{ rec.start(); micLog("rec.start() OK (sin excepción)"); }
