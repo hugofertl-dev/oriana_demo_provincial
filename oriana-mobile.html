@@ -279,6 +279,8 @@
   .btn-ghost{background:#fff;color:var(--teal-d)}.btn-solid{background:var(--teal);color:#fff;border-color:var(--teal)}
   .modal-note{font-size:12px;margin-top:10px;text-align:center;min-height:16px}
   .modal-note.ok{color:var(--green)}.modal-note.err{color:var(--red)}
+  .mic-steps{font-size:12.5px;color:var(--ink-soft);line-height:1.7;padding-left:20px;margin:2px 0 10px}
+  .mic-steps b{color:var(--ink)}
 </style>
 </head>
 <body>
@@ -330,6 +332,9 @@
     <div class="hdr">
       <button class="hback" onclick="show('home')" aria-label="Volver">‹</button>
       <div class="htitle">ORIANA</div>
+      <button class="hgear" onclick="openMicPanel()" aria-label="Micrófono" title="Micrófono">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
     </div>
     <div class="chat" id="chatlog"></div>
     <div class="composer" id="composer">
@@ -471,6 +476,23 @@
       <span>Eventos</span><span class="under"></span>
     </button>
   </nav>
+
+  <!-- ===== PANEL PERMISO MICRÓFONO ===== -->
+  <div class="modal-bg" id="micModal" onclick="if(event.target===this)closeMicPanel()">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="micModalTitle">
+      <div class="modal-h">
+        <h3 id="micModalTitle">🎙️ Micrófono</h3>
+        <button class="modal-x" onclick="closeMicPanel()" aria-label="Cerrar">✕</button>
+      </div>
+      <p class="modal-lead" id="micLead"></p>
+      <div id="micSteps"></div>
+      <div class="modal-foot">
+        <button class="btn-ghost" id="micCancel" onclick="closeMicPanel()">Escribir mejor</button>
+        <button class="btn-solid" id="micActivate" onclick="activateMic()">Activar micrófono</button>
+      </div>
+      <div class="modal-note" id="micNote"></div>
+    </div>
+  </div>
 
 </div>
 
@@ -629,8 +651,8 @@ function speakable(raw){
 const USE_SERVER_TTS = true;
 const EL_API_KEY  = "";   // <-- (opcional) key para llamada directa si USE_SERVER_TTS=false
 const EL_VOICE_ID = "";   // <-- (opcional) Voice ID para llamada directa
-const EL_STABILITY = 0.4; // más alto = más calma
-const EL_STYLE     = 0.10;// más bajo = más neutro
+const EL_STABILITY = 0.35; // más alto = más calma
+const EL_STYLE     = 0.05;// más bajo = más neutro
 
 const EL = {
   get key(){ return EL_API_KEY; },
@@ -1243,24 +1265,82 @@ function sendMain(){
    ============================================================ */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 
-// Pide el permiso del micrófono UNA sola vez y lo mantiene vivo en la sesión,
-// para no re-preguntar en cada audio. (En https/localhost queda persistente.)
-let _micStream=null, _micReq=null;
-function ensureMicPermission(){
-  if(_micStream) return Promise.resolve(_micStream);
-  if(_micReq) return _micReq;
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return Promise.resolve();
-  _micReq=navigator.mediaDevices.getUserMedia({audio:true})
-    .then(s=>{ _micStream=s; try{localStorage.setItem("mic_ok","1");}catch(e){} return s; })
-    .catch(e=>{ _micReq=null; throw e; });
-  return _micReq;
+// Permiso de micrófono. En iOS/Safari el cartel del sistema SOLO aparece al llamar
+// a getUserMedia() sobre https. El panel (openMicPanel) explica y dispara ese pedido
+// de forma explícita, y muestra instrucciones para reactivarlo si queda bloqueado.
+let _micStream=null, _micOnGranted=null;
+
+const MIC_STEPS_HTML =
+  '<ol class="mic-steps">'+
+  '<li>Tocá <b>aA</b> a la izquierda de la barra de direcciones de Safari.</li>'+
+  '<li>Elegí <b>Ajustes del sitio web</b>.</li>'+
+  '<li>En <b>Micrófono</b>, seleccioná <b>Permitir</b>.</li>'+
+  '<li>O bien en iOS: <b>Ajustes › Safari › Micrófono › Preguntar</b>.</li>'+
+  '<li>Volvé acá y tocá <b>Reintentar</b>.</li>'+
+  '</ol>';
+
+async function micPermissionState(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return "unsupported";
+  if(_micStream) return "granted";
+  if(navigator.permissions && navigator.permissions.query){
+    try{ const p=await navigator.permissions.query({name:"microphone"}); return p.state; }catch(e){}
+  }
+  return "prompt";
+}
+
+function openMicPanel(onGranted){
+  _micOnGranted = (typeof onGranted==="function") ? onGranted : null;
+  micPermissionState().then(st=>{ renderMicPanel(st); document.getElementById("micModal").classList.add("open"); });
+}
+function closeMicPanel(){ document.getElementById("micModal").classList.remove("open"); }
+
+function renderMicPanel(state){
+  const lead=document.getElementById("micLead");
+  const steps=document.getElementById("micSteps");
+  const act=document.getElementById("micActivate");
+  const cancel=document.getElementById("micCancel");
+  const note=document.getElementById("micNote");
+  note.textContent=""; note.className="modal-note"; steps.innerHTML="";
+  if(state==="unsupported"){
+    lead.textContent="Este navegador no permite usar el micrófono. Podés escribirle a ORIANA igual, sin problema.";
+    act.style.display="none"; cancel.textContent="Entendido";
+  } else if(state==="granted"){
+    lead.textContent="El micrófono ya está activado. Tocá 🎙️ en el chat y hablale a ORIANA.";
+    act.style.display="none"; cancel.textContent="Cerrar";
+    note.textContent="Micrófono activado ✓"; note.className="modal-note ok";
+  } else if(state==="denied"){
+    lead.textContent="El micrófono está bloqueado en este navegador. Para activarlo:";
+    steps.innerHTML=MIC_STEPS_HTML;
+    act.style.display=""; act.textContent="Reintentar"; cancel.textContent="Escribir mejor";
+  } else { // prompt
+    lead.textContent="Para hablarle a ORIANA por voz necesitamos permiso para usar el micrófono. Tus audios no se guardan.";
+    act.style.display=""; act.textContent="Activar micrófono"; cancel.textContent="Escribir mejor";
+  }
+}
+
+async function activateMic(){
+  const note=document.getElementById("micNote");
+  note.textContent="Pidiendo permiso…"; note.className="modal-note";
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({audio:true});
+    _micStream=s;
+    note.textContent="Micrófono activado ✓"; note.className="modal-note ok";
+    const cb=_micOnGranted; _micOnGranted=null;
+    setTimeout(()=>{ closeMicPanel(); if(cb) cb(); }, 600);
+  }catch(e){
+    renderMicPanel("denied");
+    note.textContent="No se pudo activar. Seguí los pasos de arriba."; note.className="modal-note err";
+  }
 }
 
 function setupMic(btnId, targetInput, onFinal, composerId){
   const btn=document.getElementById(btnId);
   const comp=document.getElementById(composerId);
-  if(!SR){
-    btn.onclick=()=>{ // fallback simulado
+  const rec = SR ? new SR() : null;
+  let listening=false;
+
+  function startDictation(){
+    if(!rec){ // navegador sin dictado: fallback simulado
       comp.classList.add("rec"); btn.classList.add("on");
       targetInput.placeholder="🎙️ Escuchando... (tu navegador no soporta dictado, simulando)";
       setTimeout(()=>{ comp.classList.remove("rec"); btn.classList.remove("on");
@@ -1268,24 +1348,27 @@ function setupMic(btnId, targetInput, onFinal, composerId){
         const demo="¿Cuál es el hospital más cercano?";
         targetInput.value=demo; replyWithVoice=true; onFinal(demo,true);
       },1600);
-    };
-    return;
-  }
-  const rec=new SR(); rec.lang="es-ES"; rec.interimResults=true; rec.continuous=false;
-  let listening=false;
-  btn.onclick=async()=>{
-    if(listening){ rec.stop(); return; }
-    // Solo precalentamos getUserMedia en origen seguro (https/localhost),
-    // donde el permiso se recuerda. En file:// evitamos el prompt doble.
-    if(window.isSecureContext){ try{ await ensureMicPermission(); }catch(e){} }
+      return;
+    }
     try{ rec.start(); }catch(e){}
-  };
-  rec.onstart=()=>{ listening=true; btn.classList.add("on"); comp.classList.add("rec"); targetInput.placeholder="🎙️ Te escucho..."; };
-  rec.onresult=e=>{ let txt=""; for(const r of e.results) txt+=r[0].transcript; targetInput.value=txt; autoGrow(targetInput); };
-  rec.onerror=()=>{};
-  rec.onend=()=>{ listening=false; btn.classList.remove("on"); comp.classList.remove("rec");
-    targetInput.placeholder="Escribí o tocá el micrófono para hablar...";
-    const t=targetInput.value.trim(); if(t){ replyWithVoice=true; onFinal(t,false); }  // habló -> responde por voz
+  }
+
+  if(rec){
+    rec.lang="es-ES"; rec.interimResults=true; rec.continuous=false;
+    rec.onstart=()=>{ listening=true; btn.classList.add("on"); comp.classList.add("rec"); targetInput.placeholder="🎙️ Te escucho..."; };
+    rec.onresult=e=>{ let txt=""; for(const r of e.results) txt+=r[0].transcript; targetInput.value=txt; autoGrow(targetInput); };
+    rec.onerror=(e)=>{ if(e && (e.error==="not-allowed"||e.error==="service-not-allowed")){ _micStream=null; openMicPanel(startDictation); } };
+    rec.onend=()=>{ listening=false; btn.classList.remove("on"); comp.classList.remove("rec");
+      targetInput.placeholder="Escribí o tocá el micrófono para hablar...";
+      const t=targetInput.value.trim(); if(t){ replyWithVoice=true; onFinal(t,false); }  // habló -> responde por voz
+    };
+  }
+
+  btn.onclick=async()=>{
+    if(listening){ if(rec) rec.stop(); return; }
+    const st=await micPermissionState();
+    if(st==="granted"){ startDictation(); return; }
+    openMicPanel(startDictation);   // explica + dispara getUserMedia; si concede, arranca el dictado
   };
 }
 setupMic("micBtn", input, (t)=>{ pushUser(t); input.value=""; autoGrow(input); handle(t); }, "composer");
