@@ -148,8 +148,8 @@
   .warnbar b{color:#6B4E09}
 
   /* ---------- COMPOSER (sticky) ---------- */
-  .composer{position:sticky;bottom:0;background:linear-gradient(180deg,rgba(246,246,246,0),var(--bg) 34%);
-    padding:8px 12px 14px}
+  .composer{position:sticky;bottom:78px;background:linear-gradient(180deg,rgba(246,246,246,0),var(--bg) 34%);
+    padding:8px 12px 14px}  /* bottom = alto de #tabbar: el composer se apila sobre la barra */
   .composer .inner{display:flex;align-items:flex-end;gap:8px;background:var(--surface);border:1px solid var(--border);
     border-radius:var(--r-pill);padding:6px 6px 6px 18px;box-shadow:var(--sh-md)}
   .composer.rec .inner{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft)}
@@ -264,7 +264,7 @@
   .heartbtn.on{color:#ff5a7a}
 
   /* ---------- DETALLE EVENTO ---------- */
-  #screen-evento{background:#fff;padding-bottom:20px}
+  #screen-evento{background:#fff;padding-bottom:96px}
   .ev-hero{position:relative;min-height:280px;display:flex;align-items:flex-end;padding:18px;color:#fff}
   .ev-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 20%,rgba(0,0,0,.72) 100%)}
   .ev-hero .emo{position:absolute;top:60px;right:22px;font-size:64px;opacity:.9}
@@ -704,10 +704,12 @@ document.querySelectorAll(".navbtn").forEach(b=>{
   b.onclick=()=>show(b.dataset.screen);
 });
 function show(name){
-  document.querySelectorAll(".navbtn").forEach(b=>b.classList.toggle("active",b.dataset.screen===name));
+  // El detalle de un evento pertenece a la sección Eventos → su pestaña sigue activa.
+  const tab = name==="evento" ? "linda" : name;
+  document.querySelectorAll(".navbtn").forEach(b=>b.classList.toggle("active",b.dataset.screen===tab));
   screens.forEach(s=>document.getElementById("screen-"+s).classList.toggle("hidden",s!==name));
   const comp=document.getElementById("composer"); if(comp) comp.style.display = name==="chat"?"block":"none";
-  const tb=document.getElementById("tabbar"); if(tb) tb.classList.toggle("hidden", !(name==="home"||name==="turnos"||name==="reclamos"||name==="linda"));
+  const tb=document.getElementById("tabbar"); if(tb) tb.classList.toggle("hidden", name==="login"||name==="signup");
   if(name==="home" && typeof renderHome==="function") renderHome();
   if(name==="linda" && typeof renderLinda==="function") renderLinda();
   if(name==="turnos") renderTurnos();

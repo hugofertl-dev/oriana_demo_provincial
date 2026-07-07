@@ -110,6 +110,16 @@ real (se midió `documentElement.scrollWidth <= clientWidth`). Fix: capturar con
 `--window-size=480,980 --force-device-scale-factor=2` → el teléfono de 430 queda centrado
 y completo. Para manejar la app en el screenshot: inyectar un `<script>` con
 `window.typing=cb=>cb()` (typing síncrono) y `show("pantalla")` antes de capturar.
+Ojo: `--screenshot` a secas captura ANTES de que corra el script inyectado en `load`
+(sale siempre el login) — envolver el `show(...)` en `setTimeout(...,400)` y agregar
+`--virtual-time-budget=3000` para que Chrome espere a que la app navegue (2026-07-07).
+
+### `screen-ninos` NO es modo niños: es "Acompañamiento" (violencia) (2026-07-07)
+Trampa de nombres legacy: `#screen-ninos`, `ninoslog`, `composer2`, `ninosWelcome`,
+`ninosHandle` corresponden a la pantalla **Acompañamiento** (chat confidencial para
+situaciones de violencia, línea 144/911) — nada que ver con niños. Cualquier cambio de
+tono, copy o flujo ahí es SENSIBLE (usuario en situación de riesgo): tratarlo con el
+mismo cuidado que el ruteo a la línea 144 del motor de intenciones.
 
 ### El chat tiene DOS motores: coordinar contexto entre LLM y regex (2026-07-07)
 El chat corre con el LLM (`smartHandle`→`llmHandle`→/api/chat) como primario y el motor regex
