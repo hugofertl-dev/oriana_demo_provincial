@@ -1849,6 +1849,26 @@ const MIC_STEPS_HTML =
   '<li>Volvé acá y tocá <b>Reintentar</b>.</li>'+
   '</ol>';
 
+// Navegador embebido de WhatsApp/Instagram/Facebook (WebView): el micrófono
+// suele no pedir permiso o fallar en silencio. Detección best-effort por UA —
+// los WebView de esas apps ponen su nombre en el user-agent (WhatsApp/Instagram/
+// FBAN/FBAV/FB_IAB de Facebook) y Android marca los WebView genéricos con "; wv)".
+// NO matchea Safari/Chrome/Firefox normales (ni CriOS/FxiOS de iOS).
+function isWebView(){
+  const ua = (navigator.userAgent || "");
+  return /WhatsApp|Instagram|FBAN|FBAV|FB_IAB/i.test(ua) || /;\s*wv[);]/i.test(ua);
+}
+const WEBVIEW_STEPS_HTML =
+  '<ol class="mic-steps">'+
+  '<li>Tocá el menú <b>⋯</b> (arriba a la derecha).</li>'+
+  '<li>Elegí <b>Abrir en el navegador</b> (Safari o Chrome).</li>'+
+  '<li>Ahí sí vas a poder hablarle a ORIANA por voz.</li>'+
+  '</ol>';
+// Navegador sin dictado (ej. Firefox de escritorio): antes se SIMULABA el dictado
+// y se auto-enviaba una frase demo — parecía un bug. Ahora se avisa honestamente
+// (el TTS server-side sí anda; solo falta el reconocimiento de voz del navegador).
+const MSG_SIN_DICTADO = "Tu navegador no soporta dictado por voz 🎙️. Escribile a ORIANA acá abajo.";
+
 async function micPermissionState(){
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return "unsupported";
   if(_micGranted) return "granted";
@@ -1860,6 +1880,7 @@ async function micPermissionState(){
 
 function openMicPanel(onGranted){
   _micOnGranted = (typeof onGranted==="function") ? onGranted : null;
+  if(isWebView()){ renderMicPanel("webview"); document.getElementById("micModal").classList.add("open"); return; }
   micPermissionState().then(st=>{ renderMicPanel(st); document.getElementById("micModal").classList.add("open"); });
 }
 function closeMicPanel(){ document.getElementById("micModal").classList.remove("open"); }
@@ -1871,7 +1892,12 @@ function renderMicPanel(state){
   const cancel=document.getElementById("micCancel");
   const note=document.getElementById("micNote");
   note.textContent=""; note.className="modal-note"; steps.innerHTML="";
-  if(state==="unsupported"){
+  if(state==="webview"){
+    lead.textContent="Estás en el navegador de WhatsApp/Instagram, donde el micrófono no funciona. Para hablarle a ORIANA por voz, abrila en Safari o Chrome:";
+    steps.innerHTML=WEBVIEW_STEPS_HTML;
+    act.style.display="none"; cancel.textContent="Entendido";
+    note.textContent="El chat por texto anda perfecto acá 💬"; note.className="modal-note";
+  } else if(state==="unsupported"){
     lead.textContent="Este navegador no permite usar el micrófono. Podés escribirle a ORIANA igual, sin problema.";
     act.style.display="none"; cancel.textContent="Entendido";
   } else if(state==="granted"){
@@ -1991,17 +2017,8 @@ function setupMic(btnId, targetInput, onFinal, composerId){
 
   async function startDictation(){
     squelched=false;
-    if(!rec){ // navegador sin dictado: fallback simulado
-      comp.classList.add("rec"); btn.classList.add("on");
-      targetInput.placeholder="🎙️ Escuchando... (tu navegador no soporta dictado, simulando)";
-      setTimeout(()=>{ comp.classList.remove("rec"); btn.classList.remove("on");
-        targetInput.placeholder="Escribí o tocá el micrófono para hablar...";
-        if(squelched) return;
-        const demo="¿Cuál es el hospital más cercano?";
-        targetInput.value=demo; replyWithVoice=true; onFinal(demo,true);
-      },1600);
-      return;
-    }
+    // startDictation solo se llama con `rec` presente (btn.onclick ya cortó el
+    // caso sin dictado con MSG_SIN_DICTADO; los otros callers viven dentro del if(rec)).
     // Bug iOS (mic sordo tras TTS): si la sesión de audio del sistema quedó en
     // reproducción, el dictado arranca sin captura (onstart pero nunca resulta).
     // La cura principal es el ctx.suspend() del TTS (stopAudio/webAudioPlay);
@@ -2067,6 +2084,8 @@ function setupMic(btnId, targetInput, onFinal, composerId){
   btn.onclick=async()=>{
     primeAudio();   // desbloquea el audio de iOS mientras esto es un gesto de usuario
     if(listening){ if(rec) rec.stop(); return; }
+    if(isWebView()){ openMicPanel(); return; }   // WhatsApp/IG: modal "abrí en Safari/Chrome", sin intentar dictado
+    if(!rec){ targetInput.placeholder=MSG_SIN_DICTADO; return; }   // Firefox: aviso honesto, sin pedir permiso al pedo
     const st=await micPermissionState();
     if(st==="granted"){ startDictation(); return; }
     openMicPanel(startDictation);   // explica + dispara getUserMedia; si concede, arranca el dictado

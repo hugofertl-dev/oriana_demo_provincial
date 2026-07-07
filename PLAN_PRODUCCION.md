@@ -7,7 +7,7 @@
 > **cualquiera, desde cualquier dispositivo y red, la pruebe sin que se caiga
 > ni te deje ciego**.
 >
-> **Estado: EN CURSO (Fase 1 código cerrado; 4 fases pendientes).** Orden recomendado: 1 → 2 → 3 → 4 → 5.
+> **Estado: EN CURSO (Fases 1-3 con código cerrado; Fases 4-5 pendientes).** Orden recomendado: 1 → 2 → 3 → 4 → 5.
 > Fase 1 ítems 1-2 (rate-limit + CORS) IMPLEMENTADOS y cerrados (feature `rate-limit-apis`,
 > commit f0529c4, validado en deploy). Ítems 3-4 (spending limits + concurrencia) son acción
 > manual/operativa del usuario, sin código.
@@ -86,6 +86,13 @@ si los fallos llegan.
      deploy notifications si se quiere automatizar).
 
 ## FASE 3 — Compatibilidad multi-navegador (la voz es el punto frágil)
+
+> **FASE 3 CÓDIGO COMPLETO.** Feature `compat-multinavegador` (archivada): ítem 8
+> (WebView WhatsApp/IG/FB → modal "abrí en Safari/Chrome" al tocar el micro, vía
+> `isWebView()`) e ítem 9 (Firefox honesto: eliminado el dictado simulado, aviso por
+> placeholder) IMPLEMENTADOS y cerrados. Ítem 10: matriz creada en
+> `docs/matriz-navegadores.md` (Safari iOS ✓ prellenado). 🖐️ PENDIENTE: completar la
+> matriz probando en dispositivos reales (esa prueba manual ES la verificación del ítem 10).
 
 8. **WebView de WhatsApp/Instagram — el "a mí no me anda" más probable.**
    - Si el link se comparte por WhatsApp, mucha gente lo abre en el navegador

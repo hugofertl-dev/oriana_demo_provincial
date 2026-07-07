@@ -223,3 +223,18 @@ real reportado por el usuario en dispositivo). Patrón usado: `setupMic` expone
 `cancelPending()` (flag `squelched` + `rec.abort()`) y todo envío manual la llama
 primero. Repro permanente: test/dictado-doble-envio.test.js. Ojo: NO alcanza con
 limpiar el input en el send — el onresult posterior lo vuelve a llenar.
+
+### JSDOM 29: la opción `userAgent` del constructor NO aplica (2026-07-07)
+En `new JSDOM(html, { userAgent })` (versión 29.1.1) `navigator.userAgent` sigue devolviendo
+el default `...jsdom/29.1.1` — la opción se ignora. Para testear código que ramifica por UA
+(ej. `isWebView()` de la FASE 3), forzarlo en `beforeParse`:
+`Object.defineProperty(window.navigator, "userAgent", { configurable:true, value: ua })`
+(mismo patrón que usamos para `navigator.geolocation`). Ver test/fase3-compat.test.js.
+
+### Script clásico inline: `const`/`let` top-level NO quedan en `window` (2026-07-07)
+En el `<script>` inline de index.html (no es módulo), una `function foo(){}` de nivel superior
+SÍ se vuelve `window.foo` (por eso los tests pueden llamar `window.isWebView()` /
+`window.renderMicPanel()`), pero un `const FOO = "..."` top-level NO crea `window.FOO`
+(queda `undefined`). Moraleja para tests jsdom: una constante de texto (ej. `MSG_SIN_DICTADO`)
+no se puede leer vía `window`; verificar por el efecto observable (el `placeholder` del input)
+o por grep de fuente, no por `window.LACONSTANTE`.
