@@ -44,6 +44,7 @@ const dom = new JSDOM(html, {
     window.URL.revokeObjectURL = () => { window.__revoked++; };
     // Estado persistido de una "sesión anterior": un turno extra y un favorito
     window.localStorage.setItem("oriana_demo_db", JSON.stringify({
+      v: 1,   // versión del shape (un payload sin versión o de otra versión se descarta)
       turnos_activos: [
         { hospital: "Hospital Escuela de Agudos Dr. Ramón Madariaga", esp: "Clínica médica", cuando: "Vie 10/07 · 10:20", estado: "Confirmado" },
         { hospital: "Hospital de Fátima Dr. René Favaloro", esp: "Pediatría", cuando: "Jue 9/07 · 08:15", estado: "Confirmado" }

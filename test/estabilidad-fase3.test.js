@@ -92,8 +92,13 @@ window.typing = cb => cb();
   const chip = chatlog().querySelector(".chip");
   const before = userMsgs();
   chip.click();
-  chip.click();   // doble tap inmediato
+  chip.click();   // doble tap inmediato al MISMO chip
   check("el segundo tap inmediato NO manda un segundo mensaje", userMsgs() === before + 1);
+  // el gate es por elemento: tocar enseguida un chip DISTINTO sí vale (review 2026-07-07)
+  window.pushBot("Otra" + window.chipRow([{ label: "Gracias", send: "gracias" }]));
+  const otro = chatlog().querySelectorAll(".chip")[1];
+  otro.click();
+  check("un chip DISTINTO tocado enseguida SÍ dispara", userMsgs() === before + 2);
 
   // ── Ítem 14: el flow loc se limpia al salir del chat ────────────────────────
   console.log("── Ítem 14: flow loc/address expira al navegar fuera del chat");

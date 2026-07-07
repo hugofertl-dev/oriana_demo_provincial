@@ -622,6 +622,7 @@ const DB = {
 const DEMO_DB_KEY="oriana_demo_db";
 let _demoPersisted=null;
 try{ _demoPersisted=JSON.parse(localStorage.getItem(DEMO_DB_KEY)||"null"); }catch(e){}
+if(_demoPersisted && _demoPersisted.v!==1) _demoPersisted=null;   // shape viejo/desconocido: descartar
 if(_demoPersisted){
   if(Array.isArray(_demoPersisted.turnos_activos)) DB.turnos_activos=_demoPersisted.turnos_activos;
   if(Array.isArray(_demoPersisted.reclamos)) DB.reclamos=_demoPersisted.reclamos;
@@ -629,6 +630,7 @@ if(_demoPersisted){
 function saveDemoData(){
   try{
     localStorage.setItem(DEMO_DB_KEY, JSON.stringify({
+      v:1,   // versión del shape: si DB cambia, subirla y lo persistido viejo se descarta solo
       turnos_activos: DB.turnos_activos,
       reclamos: DB.reclamos,
       favs: (typeof favs!=="undefined" && favs) ? favs : {}   // favs vive en el script de eventos
@@ -688,6 +690,9 @@ function logout(){
   ["loginEmail","loginPass","suEmail","suNombre","suApellido","suPass","suPass2"].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=""; });
   const le=document.getElementById("loginErr"); if(le) le.textContent="";
   show("login");
+  // Reload: sin esto la DB en memoria conserva los datos viejos y el próximo
+  // saveDemoData() los re-persistiría, deshaciendo el reset (review 2026-07-07).
+  try{ location.reload(); }catch(e){}
 }
 
 // Resuelve la pantalla inicial según la sesión persistida.
@@ -1112,14 +1117,14 @@ function chipRow(items){
 function chipClick(text){ replyWithVoice=false; pushUser(text); smartHandle(text); }
 
 // Doble tap en un chip = flujos dobles (y en Acompañamiento, DOS turnos). Gate
-// global en fase de captura: el 2º tap en <900 ms no llega ni al onclick inline.
-let _lastChipTap=0;
+// POR ELEMENTO en fase de captura: el 2º tap al MISMO chip en <900 ms no llega
+// ni al onclick inline; tocar enseguida un chip DISTINTO sigue siendo válido.
 document.addEventListener("click",(e)=>{
   const c=e.target && e.target.closest ? e.target.closest(".chip") : null;
   if(!c) return;
-  const now=Date.now();
-  if(now-_lastChipTap<900){ e.stopPropagation(); e.preventDefault(); return; }
-  _lastChipTap=now;
+  const now=Date.now(), prev=+(c.dataset.lastTap||0);
+  if(now-prev<900){ e.stopPropagation(); e.preventDefault(); return; }
+  c.dataset.lastTap=now;
 },true);
 
 /* ============================================================
