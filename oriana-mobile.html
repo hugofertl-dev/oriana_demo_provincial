@@ -1358,12 +1358,7 @@ async function activateMic(){
     setTimeout(()=>{ closeMicPanel(); if(cb) cb(); }, 600);
   }catch(e){
     renderMicPanel("denied");
-    const diag=(e&&e.name?e.name:"Error")+(e&&e.message?": "+e.message:"");
-    const ua=navigator.userAgent;
-    const inApp=/FBAN|FBAV|Instagram|Line|Twitter|WhatsApp|; wv\)/.test(ua);
-    const env="seguro:"+(!!window.isSecureContext)+" · API:"+(!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia))+" · standalone:"+(!!window.navigator.standalone)+" · inApp:"+inApp;
-    note.innerHTML="No se pudo activar — <b>"+diag+"</b><br><span style='font-size:10.5px;color:var(--muted)'>"+env+"</span>";
-    note.className="modal-note err";
+    note.textContent="No se pudo activar. Seguí los pasos de arriba."; note.className="modal-note err";
   }
 }
 
