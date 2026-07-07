@@ -758,16 +758,20 @@ function speakable(raw){
   [[/\bLun\.?(?!\w)/gi,"lunes"],[/\bMi[ée]\.?(?!\w)/gi,"miércoles"],[/\bJue\.?(?!\w)/gi,"jueves"],
    [/\bVie\.?(?!\w)/gi,"viernes"],[/\bS[áa]b\.?(?!\w)/gi,"sábado"],[/\bDom\.?(?!\w)/gi,"domingo"]
   ].forEach(([re,rep])=>s=s.replace(re,rep));
-  // teléfonos u otras secuencias con guiones -> dígito por dígito
-  s=s.replace(/\b\d{2,}(?:[-\s]\d{2,})+\b/g,m=>m.replace(/[-\s]/g," ").replace(/\d/g,d=>numToWords(+d)+" ").trim());
   // ordinales tipo 1ra, 2do, 3er, 4ta
   s=s.replace(/\b(\d+)\s?(ra|era|da|do|ro|er|to|ta|mo|ma|vo|va|na)\b/gi,(m,n,suf)=>ordinalWord(+n,suf));
   // el "·" de la agenda antes de una hora se dice "a las" ("Mié 8/07 · 09:30")
   s=s.replace(/\s*·\s*(?=\d{1,2}:\d{2})/g," a las ");
+  // ídem cuando el LLM separa fecha y hora con espacio ("Mié 8/07 09:30")
+  s=s.replace(/(\d{1,2}\/\d{1,2})\s+(?=\d{1,2}:\d{2})/g,"$1 a las ");
   // horas HH:MM
   s=s.replace(/(\d{1,2}):(\d{2})/g,(m,h,mm)=>horaPalabras(+h,+mm));
   // fechas D/MM
   s=s.replace(/\b(\d{1,2})\/(\d{1,2})\b/g,(m,d,mo)=>numToWords(+d)+" de "+(MESES[+mo]||("mes "+numToWords(+mo))));
+  // teléfonos u otras secuencias con guiones -> dígito por dígito.
+  // OJO orden: SIEMPRE después de horas/fechas — antes se comía "07 09" de
+  // "Mié 8/07 09:30" como si fuera teléfono y la voz decía dígitos sueltos.
+  s=s.replace(/\b\d{2,}(?:[-\s]\d{2,})+\b/g,m=>m.replace(/[-\s]/g," ").replace(/\d/g,d=>numToWords(+d)+" ").trim());
   // montos $52.000
   s=s.replace(/\$\s?([\d.]+)/g,(m,n)=>numToWords(+n.replace(/\./g,""))+" pesos");
   // porcentajes

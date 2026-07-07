@@ -79,6 +79,15 @@ check("'21:00 a 01:00' → hora 1 en femenino ('una', no 'uno')", (() => { const
 check("'12:30' → 'doce y media del mediodía'", say("12:30").includes("doce y media del mediodía"));
 check("no dice 'a las a las' cuando el texto ya lo trae", !/a las a las/.test(say("Turnos: Mié 09/07 a las 11:00")));
 
+console.log("── fecha+hora separadas por ESPACIO (formato libre del LLM): la regla de teléfonos no debe comérselas");
+check("'Mié 8/07 09:30' → 'ocho de julio' (no 'cero siete' dígito a dígito)", (() => { const o = say("Mié 8/07 09:30"); return o.includes("ocho de julio") && !/cero siete/.test(o); })());
+check("'Mié 8/07 09:30' → 'a las nueve y media de la mañana'", say("Mié 8/07 09:30").includes("a las nueve y media de la mañana"));
+check("lista de horarios del LLM sin '·' se dice completa", (() => {
+  const o = say("Tengo estos horarios: Mié 8/07 09:30, Mié 8/07 11:00 y Jue 9/07 08:15");
+  return o.includes("a las once de la mañana") && o.includes("a las ocho y cuarto de la mañana") && !/uno uno|cero nueve|cero siete/.test(o);
+})());
+check("teléfonos con guiones SIGUEN dígito a dígito", (() => { const o = say("Llamá al 0800-555-3344"); return /cero ocho cero cero/.test(o) && /tres tres cuatro cuatro/.test(o); })());
+
 console.log("── abreviaturas con punto: el punto no sobrevive");
 check("'Dr. Ramón Madariaga' → 'doctor Ramón' (sin punto pegado)", (() => { const o = say("Hospital Dr. Ramón Madariaga"); return o.includes("doctor Ramón") && !o.includes("doctor."); })());
 check("'Av. Uruguay' → 'avenida Uruguay' (sin punto pegado)", (() => { const o = say("Av. Uruguay 1234"); return o.includes("avenida Uruguay") && !o.includes("avenida."); })());
