@@ -114,6 +114,17 @@ Ojo: `--screenshot` a secas captura ANTES de que corra el script inyectado en `l
 (sale siempre el login) — envolver el `show(...)` en `setTimeout(...,400)` y agregar
 `--virtual-time-budget=3000` para que Chrome espere a que la app navegue (2026-07-07).
 
+### Optimizar fotos para assets/ con sips (2026-07-07)
+Receta usada en eventos-fotos-reales, sirve para futuras fotos (con test de peso
+≤155 KB en `test/eventos-fotos.test.js`):
+`sips --resampleWidth 1000 -s format jpeg -s formatOptions 55 "orig.jpg" --out slug.jpg`.
+Trampas: (1) la calidad 70+ NO alcanza el objetivo si el original ya venía muy
+comprimido (recorrido-historico 974 KB→314 KB con q72; hizo falta q45); calibrar
+por archivo mirando el peso resultante. (2) NO upscalear originales chicos
+(maraton era 639px: se recomprime tal cual, upscalear empeora). Nombres SIEMPRE
+url-safe (sin espacios/acentos) — los originales tenían hasta un espacio antes
+de la extensión ("Peña de chamame .jpg").
+
 ### `screen-ninos` NO es modo niños: es "Acompañamiento" (violencia) (2026-07-07)
 Trampa de nombres legacy: `#screen-ninos`, `ninoslog`, `composer2`, `ninosWelcome`,
 `ninosHandle` corresponden a la pantalla **Acompañamiento** (chat confidencial para

@@ -252,7 +252,6 @@
   .ev-card .ph{position:relative;display:flex;align-items:flex-end;height:172px;padding:11px}
   .ev-card.full .ph{height:150px}
   .ev-card .ph::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 28%,rgba(0,0,0,.74) 100%)}
-  .ev-card .emo{position:absolute;top:10px;right:12px;font-size:30px;opacity:.9;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}
   .ev-card .cat{position:absolute;top:12px;left:12px;background:var(--primary-soft);color:var(--primary-ink);font-size:11px;
     font-weight:700;padding:5px 11px;border-radius:20px;z-index:2}
   .ev-card .meta{position:relative;z-index:2}
@@ -267,7 +266,6 @@
   #screen-evento{background:#fff;padding-bottom:96px}
   .ev-hero{position:relative;min-height:280px;display:flex;align-items:flex-end;padding:18px;color:#fff}
   .ev-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 20%,rgba(0,0,0,.72) 100%)}
-  .ev-hero .emo{position:absolute;top:60px;right:22px;font-size:64px;opacity:.9}
   .ev-hero .back{position:absolute;top:16px;left:16px;z-index:3;width:38px;height:38px;border-radius:50%;
     background:rgba(0,0,0,.4);border:none;color:#fff;font-size:22px;cursor:pointer}
   .ev-hero .htxt{position:relative;z-index:2}
@@ -2065,33 +2063,33 @@ function renderHome(){
 
 /* ---------- EVENTOS (LINDA) ---------- */
 const EVENTOS=[
-  {id:"e1", cat:"Arte y cultura", emo:"💃", date:"6/7/2026", tall:true,
-   grad:"linear-gradient(135deg,#2b1a2e,#7a2f52,#b64a6a)",
+  {id:"e1", cat:"Arte y cultura", date:"6/7/2026", tall:true,
+   img:"assets/pena-chamame.jpg",
    t:"Peña de chamamé en el Anfiteatro Manuel Antonio Ramírez",
    lugar:"Anfiteatro M. A. Ramírez · Costanera de Posadas", hora:"21:00 a 01:00", precio:"Entrada libre",
    desc:"Una noche a puro chamamé frente al río Paraná. Conjuntos misioneros y correntinos en vivo, clase abierta de baile a las 21:00 y patio de comidas típicas. Ambiente familiar. No se requiere pareja ni experiencia previa."},
-  {id:"e2", cat:"Entretenimiento", emo:"🏮", date:"6/7/2026", tall:false,
-   grad:"linear-gradient(135deg,#3a0d1a,#7c1f2f,#c0392b)",
+  {id:"e2", cat:"Entretenimiento", date:"6/7/2026", tall:false,
+   img:"assets/feria-gastronomica.jpg",
    t:"Feria y patio gastronómico en la Costanera de Posadas",
    lugar:"Costanera · playa El Brete", hora:"19:00 a 23:00", precio:"Gratis",
    desc:"La costanera se llena de puestos de artesanos, food trucks y espectáculos itinerantes, con la bahía El Brete iluminada. Zona de juegos para los más chicos. Ideal para ir en familia."},
-  {id:"e3", cat:"Música y Shows", emo:"🎸", date:"7/7/2026", tall:false,
-   grad:"linear-gradient(135deg,#241a12,#5a3a22,#8a5a2b)",
+  {id:"e3", cat:"Música y Shows", date:"7/7/2026", tall:false,
+   img:"assets/musica-teatro-lirico.jpg",
    t:"Música en vivo en el Teatro Lírico del Parque del Conocimiento",
    lugar:"Parque del Conocimiento · Posadas", hora:"21:30", precio:"Desde $18.000",
    desc:"Gran show con banda completa en la sala mayor del Parque del Conocimiento, una de las más importantes del NEA. Puesta escénica renovada y entradas por sectores en venta online."},
-  {id:"e4", cat:"Recorridos y visitas guiadas", emo:"🏛️", date:"8/7/2026", tall:true,
-   grad:"linear-gradient(135deg,#12303a,#1d5a6b,#2a8fa5)",
+  {id:"e4", cat:"Recorridos y visitas guiadas", date:"8/7/2026", tall:true,
+   img:"assets/recorrido-historico.jpg",
    t:"Recorrido histórico por el centro de Posadas",
    lugar:"Punto de encuentro: Plaza 9 de Julio", hora:"10:00 y 16:00", precio:"Gratis con inscripción",
    desc:"Caminata guiada desde la Plaza 9 de Julio: Catedral, Casa de Gobierno y los edificios patrimoniales del casco céntrico, con relatos sobre la fundación de la ciudad y su historia jesuítica. Dura aproximadamente 90 minutos. Cupos limitados."},
-  {id:"e5", cat:"Gastronomía", emo:"🧉", date:"9/7/2026", tall:false,
-   grad:"linear-gradient(135deg,#2a1220,#6d2436,#a83e57)",
+  {id:"e5", cat:"Gastronomía", date:"9/7/2026", tall:false,
+   img:"assets/degustacion-misionera.jpg",
    t:"Degustación de productos misioneros: yerba, té y frutas tropicales",
    lugar:"Mercado Concentrador Zonal · Posadas", hora:"12:00 a 22:00", precio:"$3.000 (kit de mate incluido)",
    desc:"Productores de toda la provincia presentan yerba mate, té, mamón, ananá y conservas artesanales. Degustaciones guiadas, ronda de mate y música en vivo."},
-  {id:"e6", cat:"Deporte", emo:"🏃", date:"12/7/2026", tall:false,
-   grad:"linear-gradient(135deg,#102a1c,#1d5a3a,#2a8f5a)",
+  {id:"e6", cat:"Deporte", date:"12/7/2026", tall:false,
+   img:"assets/maraton-costanera.jpg",
    t:"Maratón de la Costanera 10K y caminata familiar",
    lugar:"Largada: Costanera de Posadas", hora:"08:00", precio:"Inscripción gratuita",
    desc:"Circuito de 10K por la costanera del Paraná y una caminata recreativa de 3K para toda la familia. Hidratación, guardarropa y kit del corredor. Inscripción previa obligatoria."}
@@ -2100,9 +2098,8 @@ let favs={};
 function evCard(e, i){
   const full = (i % 3 === 0);   // patrón: 1 completo + 2 al 50%, repetido
   return `<div class="ev-card ${full?'full':''}" onclick="openEvento('${e.id}')">
-    <div class="ph" style="background:${e.grad}">
+    <div class="ph" style="background:#26323a url('${e.img}') center/cover no-repeat">
       <span class="cat">${e.cat}</span>
-      <span class="emo">${e.emo}</span>
       <button class="heartbtn ${favs[e.id]?'on':''}" onclick="event.stopPropagation();toggleFav('${e.id}')">${favs[e.id]?'♥':'♡'}</button>
       <div class="meta">
         <div class="date">📅 ${e.date}</div>
@@ -2134,9 +2131,8 @@ function renderEvento(id){
   const e=EVENTOS.find(x=>x.id===id); if(!e) return;
   const el=document.getElementById("eventoBody");
   el.innerHTML=`
-    <div class="ev-hero" style="background:${e.grad}">
+    <div class="ev-hero" style="background:#26323a url('${e.img}') center/cover no-repeat">
       <button class="back" onclick="show('linda')" aria-label="Volver">‹</button>
-      <span class="emo">${e.emo}</span>
       <div class="htxt"><span class="cat">${e.cat}</span><h2>${e.t}</h2></div>
     </div>
     <div class="ev-detail">
