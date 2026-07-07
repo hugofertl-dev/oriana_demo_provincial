@@ -687,11 +687,25 @@ const screens = ["login","signup","home","chat","turnos","reclamos","cerca","per
 document.querySelectorAll(".navbtn").forEach(b=>{
   b.onclick=()=>show(b.dataset.screen);
 });
+// Back físico de Android: cada pantalla apila un estado; el back navega hacia
+// atrás DENTRO de la demo en vez de salir y perder toda la conversación.
+let _navFromPop=false, _lastScreen=null;
+window.addEventListener("popstate",(e)=>{
+  const s=e.state && e.state.screen;
+  if(s){ _navFromPop=true; show(s); _navFromPop=false; }
+});
+try{ history.replaceState({screen:"login"},""); }catch(e){}
+
 function show(name){
   // El detalle de un evento pertenece a la sección Eventos → su pestaña sigue activa.
   const tab = name==="evento" ? "linda" : name;
   document.querySelectorAll(".navbtn").forEach(b=>b.classList.toggle("active",b.dataset.screen===tab));
   screens.forEach(s=>document.getElementById("screen-"+s).classList.toggle("hidden",s!==name));
+  // Un flow de ubicación (esperando modal o dirección) no sobrevive a la navegación:
+  // si no, al volver al chat CUALQUIER mensaje se interpretaba como dirección.
+  if(name!=="chat" && flow && flow.type==="loc"){ flow=null; closeGeoPanel(); }
+  if(!_navFromPop && _lastScreen!==name){ try{ history.pushState({screen:name},""); }catch(e){} }
+  _lastScreen=name;
   const comp=document.getElementById("composer"); if(comp) comp.style.display = name==="chat"?"block":"none";
   const tb=document.getElementById("tabbar"); if(tb) tb.classList.toggle("hidden", name==="login"||name==="signup");
   if(name==="home" && typeof renderHome==="function") renderHome();
@@ -703,7 +717,8 @@ function show(name){
   if(name==="ninos" && ninosLog.children.length===0) ninosWelcome();
   if(name==="chat" && chatlog.children.length===0) greet();
 }
-function goChat(text){ show("chat"); setTimeout(()=>{ pushUser(text); handle(text); },150); }
+// smartHandle y no handle: respeta el lock del LLM (una respuesta en vuelo no se cruza).
+function goChat(text){ show("chat"); setTimeout(()=>{ pushUser(text); smartHandle(text); },150); }
 
 /* ============================================================
    TTS (voz de ORIANA) — ElevenLabs con fallback a navegador
@@ -1061,6 +1076,17 @@ function chipRow(items){
 }
 function chipClick(text){ replyWithVoice=false; pushUser(text); smartHandle(text); }
 
+// Doble tap en un chip = flujos dobles (y en Acompañamiento, DOS turnos). Gate
+// global en fase de captura: el 2º tap en <900 ms no llega ni al onclick inline.
+let _lastChipTap=0;
+document.addEventListener("click",(e)=>{
+  const c=e.target && e.target.closest ? e.target.closest(".chip") : null;
+  if(!c) return;
+  const now=Date.now();
+  if(now-_lastChipTap<900){ e.stopPropagation(); e.preventDefault(); return; }
+  _lastChipTap=now;
+},true);
+
 /* ============================================================
    CHAT CON LLM (Claude vía /api/chat) — con fallback al motor regex
    El LLM conduce la conversación (solo temas de la demo, datos de
@@ -1216,17 +1242,20 @@ function isNo(t){ return RX_NO.test(t); }
 function handle(text){
   if(flow) return flowDispatch(text);
   const t=norm(text);
+  // Los intents que ABREN un flujo se despachan SINCRÓNICOS (fuera del typing):
+  // si `flow` se seteara 650 ms tarde, un 2º mensaje en esa ventana despachaba
+  // doble flujo. Cada start* pone su propio typing() para la burbuja.
+  if(/\bturno|sacar .*turno|reservar|agendar|saco un turno/.test(t)) return startTurno();
+  // --- RECLAMOS (antes que hospital/policía/turno-cercano para no colisionar) ---
+  if((/luz|electric|el[eé]ctric|tension|apag[oó]n|medidor/.test(t)) && !/arterial|presi[oó]n/.test(t) && /(reclam|queja|corte|sin|baja|problema|no (tengo|hay|anda|funciona|llega)|se (corto|fue|corta)|bajon)/.test(t)) return startReclamo("elec");
+  // OJO: 'maltrat/destrat' y 'problema' NO van acá — colisionan con la línea 144/violencia y con "hospital más cercano".
+  // El trato/maltrato en hospital lo captura matchProblemaHosp YA dentro del flujo. 'denunc' cubre "denunciar problemas/demoras".
+  if((/reclam|queja|denunc|demor|mala atenci|no me atendi|no me atiend|falta de atenci|mal atendi/.test(t)) && /(hospital|guardia|salud|m[eé]dic|atenci|atendi|clinic|sala|enfermer)/.test(t)) return startReclamo("hosp");
+  if(/reclam|queja|protest/.test(t)) return RX_RECLAMO_OUT.test(t) ? reclamoFueraAlcance() : startReclamo(null);
+  if((/hospital|guardia|salud|medic|clinic|atencion/.test(t)) && /cerca|cercano|mas|proxim|donde|ubica|zona/.test(t)) return startLoc("hospital");
+  if(/polic|comisar|911|robo|asalto|denunc|patrull/.test(t)) return startLoc("policia");
+  if(/hospital|guardia/.test(t)) return startLoc("hospital");
   typing(()=>{
-    if(/\bturno|sacar .*turno|reservar|agendar|saco un turno/.test(t)) return startTurno();
-    // --- RECLAMOS (antes que hospital/policía/turno-cercano para no colisionar) ---
-    if((/luz|electric|el[eé]ctric|tension|apag[oó]n|medidor/.test(t)) && !/arterial|presi[oó]n/.test(t) && /(reclam|queja|corte|sin|baja|problema|no (tengo|hay|anda|funciona|llega)|se (corto|fue|corta)|bajon)/.test(t)) return startReclamo("elec");
-    // OJO: 'maltrat/destrat' y 'problema' NO van acá — colisionan con la línea 144/violencia y con "hospital más cercano".
-    // El trato/maltrato en hospital lo captura matchProblemaHosp YA dentro del flujo. 'denunc' cubre "denunciar problemas/demoras".
-    if((/reclam|queja|denunc|demor|mala atenci|no me atendi|no me atiend|falta de atenci|mal atendi/.test(t)) && /(hospital|guardia|salud|m[eé]dic|atenci|atendi|clinic|sala|enfermer)/.test(t)) return startReclamo("hosp");
-    if(/reclam|queja|protest/.test(t)) return RX_RECLAMO_OUT.test(t) ? reclamoFueraAlcance() : startReclamo(null);
-    if((/hospital|guardia|salud|medic|clinic|atencion/.test(t)) && /cerca|cercano|mas|proxim|donde|ubica|zona/.test(t)) return startLoc("hospital");
-    if(/polic|comisar|911|robo|asalto|denunc|patrull/.test(t)) return startLoc("policia");
-    if(/hospital|guardia/.test(t)) return startLoc("hospital");
     if(/beneficio|alimentar|auh|asignaci|social|cobro|progresar/.test(t)) return showBenefits();
     if(/perfil|mis datos|documento|\bdni\b/.test(t)) return showProfileMsg();
     if(/violenc|maltrat|amenaz|abus|agred|agresi|golpe.*(pareja|marido|novio)|mi pareja|mi marido|genero|acos|\b144\b|me pega|tengo miedo|ayuda|apoyo/.test(t)) return toNinos();
@@ -1240,6 +1269,7 @@ function handle(text){
 function flowDispatch(text){
   const t=norm(text);
   if(RX_CANCEL.test(t)){
+    if(flow.type==="loc") closeGeoPanel();   // "cancelar" tipeado también cierra el modal geo
     flow=null;
     return typing(()=>pushBot("Está bien, lo dejamos por acá 👍. ¿Querés hacer otra cosa?"+
       chipRow([{label:"🗓️ Sacar un turno",send:"Quiero sacar un turno"},{label:"🏥 Hospital cercano",send:"hospital más cercano"},{label:"Volver al inicio",send:"hola"}]),
@@ -1307,10 +1337,10 @@ function matchFecha(text){
 }
 
 function startTurno(){
-  flow={type:"turno", step:"hospital", data:{}, tries:0};
-  pushBot(`Perfecto, saquemos un turno 🗓️. ¿En qué hospital querés atenderte?`+
+  flow={type:"turno", step:"hospital", data:{}, tries:0};   // sincrónico: antes del typing
+  typing(()=>pushBot(`Perfecto, saquemos un turno 🗓️. ¿En qué hospital querés atenderte?`+
     chipRow(hospChips()),
-    "Perfecto. ¿En qué hospital querés el turno?");
+    "Perfecto. ¿En qué hospital querés el turno?"));
 }
 function turnoStep(text){
   const t=norm(text);
@@ -1415,34 +1445,34 @@ function problemaHospChips(){ return [{label:"Demora en la atención",send:"Demo
 function desdeChips(){ return [{label:"Hace unas horas",send:"Hace unas horas"},{label:"Desde ayer",send:"Desde ayer"},{label:"Hace varios días",send:"Hace varios días"}]; }
 
 function reclamoFueraAlcance(){
-  return pushBot(`Gracias por escribirme 🙏. Todavía <strong>no cuento con la información</strong> para gestionar ese tipo de reclamo — sigo aprendiendo para poder ayudarte con más temas. Te agradezco la comprensión 💛.<br><br>Por ahora puedo tomar reclamos de:`+
+  return typing(()=>pushBot(`Gracias por escribirme 🙏. Todavía <strong>no cuento con la información</strong> para gestionar ese tipo de reclamo — sigo aprendiendo para poder ayudarte con más temas. Te agradezco la comprensión 💛.<br><br>Por ahora puedo tomar reclamos de:`+
     chipRow([
       {label:"⚡ Luz: corte o baja tensión",send:"Reclamo por corte o baja tensión de luz"},
       {label:"🏥 Hospital público",send:"Reclamo por atención en un hospital público"}
     ]),
-    "Gracias por escribirme. Todavía no cuento con la información para gestionar ese reclamo. Sigo aprendiendo y te agradezco la comprensión. Por ahora puedo tomar reclamos de luz o de hospitales públicos.");
+    "Gracias por escribirme. Todavía no cuento con la información para gestionar ese reclamo. Sigo aprendiendo y te agradezco la comprensión. Por ahora puedo tomar reclamos de luz o de hospitales públicos."));
 }
 
 function startReclamo(sub){
   if(sub==="elec"){
-    flow={type:"reclamo", sub:"elec", step:"tipo", data:{}, tries:0};
-    return pushBot(`Lamento el inconveniente con la luz ⚡. Registremos tu reclamo. ¿Qué está pasando?`+
+    flow={type:"reclamo", sub:"elec", step:"tipo", data:{}, tries:0};   // sincrónico: antes del typing
+    return typing(()=>pushBot(`Lamento el inconveniente con la luz ⚡. Registremos tu reclamo. ¿Qué está pasando?`+
       chipRow(tipoElecChips()),
-      "Registremos tu reclamo de luz. ¿Es un corte total o baja tensión?");
+      "Registremos tu reclamo de luz. ¿Es un corte total o baja tensión?"));
   }
   if(sub==="hosp"){
     flow={type:"reclamo", sub:"hosp", step:"hospital", data:{}, tries:0};
-    return pushBot(`Lamento lo que pasó 🏥. Registremos tu reclamo. ¿En qué hospital fue?`+
+    return typing(()=>pushBot(`Lamento lo que pasó 🏥. Registremos tu reclamo. ¿En qué hospital fue?`+
       chipRow(hospChips()),
-      "Registremos tu reclamo. ¿En qué hospital fue?");
+      "Registremos tu reclamo. ¿En qué hospital fue?"));
   }
   // Tema no especificado -> ofrecer los dos temas disponibles.
-  return pushBot(`¡Te ayudo a hacer un reclamo! 📣 ¿Sobre cuál de estos temas es?`+
+  return typing(()=>pushBot(`¡Te ayudo a hacer un reclamo! 📣 ¿Sobre cuál de estos temas es?`+
     chipRow([
       {label:"⚡ Luz: corte o baja tensión",send:"Reclamo por corte o baja tensión de luz"},
       {label:"🏥 Hospital público",send:"Reclamo por atención en un hospital público"}
     ]),
-    "¿Sobre qué tema es el reclamo? Puedo tomar reclamos de luz o de hospitales públicos.");
+    "¿Sobre qué tema es el reclamo? Puedo tomar reclamos de luz o de hospitales públicos."));
 }
 
 function resumenReclamo(sub, d){
@@ -1637,10 +1667,12 @@ function mostrarCercano(kind, refPoint, originLabel, anchored){
 }
 // Elegir hospital/comisaría cercano → abre el modal de ubicación (preserva flow.type=loc/kind).
 function startLoc(kind){
-  flow={type:"loc", kind, step:"await"};
+  flow={type:"loc", kind, step:"await"};   // sincrónico: antes del typing
   const que=kind==="hospital"?"el hospital más cercano":"la comisaría más cercana";
-  pushBot(`Para darte ${que} 📍 necesito tu ubicación.`, `Para darte ${que} necesito tu ubicación.`);
-  openGeoPanel(kind);
+  typing(()=>{
+    pushBot(`Para darte ${que} 📍 necesito tu ubicación.`, `Para darte ${que} necesito tu ubicación.`);
+    openGeoPanel(kind);
+  });
 }
 // Maneja la dirección tipeada (cuando el usuario no comparte la ubicación).
 function locStep(text){
@@ -1797,13 +1829,18 @@ async function activateMic(){
 
 /* ---- PANEL PERMISO UBICACIÓN (mismo patrón que el micrófono) ---- */
 let _geoKind=null;
+let _geoSeq=0;   // cerrar el modal invalida el getCurrentPosition en vuelo (ver requestGeo)
 const GEO_STEPS_HTML='<ol class="mic-steps"><li>Tocá el candado 🔒 o <b>aA</b> en la barra del navegador.</li><li>Entrá a <b>Ajustes del sitio</b> → <b>Ubicación</b>.</li><li>Poné <b>Permitir</b> y volvé a intentar.</li></ol>';
 function openGeoPanel(kind){
   _geoKind = kind || _geoKind || "hospital";
   const m=document.getElementById("geoModal"); if(!m) return;
+  // Un mensaje tipeado mientras el LLM abría este modal quedaba encolado y locStep
+  // se lo comía como "dirección" (cerrando el modal). La cola vieja no sobrevive.
+  llmQueue.length=0;
   renderGeoPanel("prompt"); m.classList.add("open");
 }
 function closeGeoPanel(){
+  _geoSeq++;   // descarta cualquier getCurrentPosition que siga en vuelo
   const m=document.getElementById("geoModal"); if(m) m.classList.remove("open");
   // Descartar el modal (✕/backdrop) sin compartir ubicación: soltar el flujo en espera
   // para que el próximo mensaje vaya al LLM y no lo secuestre locStep como "dirección".
@@ -1829,7 +1866,13 @@ function requestGeo(){
   const note=document.getElementById("geoNote");
   if(!navigator.geolocation){ renderGeoPanel("unsupported"); return; }
   if(note){ note.textContent="Pidiendo ubicación…"; note.className="modal-note"; }
-  navigator.geolocation.getCurrentPosition(onGeoOk, onGeoErr, {enableHighAccuracy:false, timeout:10000, maximumAge:60000});
+  // Si el modal se cerró (o se navegó) mientras la ubicación venía en camino,
+  // la respuesta se descarta: la tarjeta "más cercano" no aparece de la nada.
+  const seq=_geoSeq;
+  navigator.geolocation.getCurrentPosition(
+    p=>{ if(seq===_geoSeq) onGeoOk(p); },
+    e=>{ if(seq===_geoSeq) onGeoErr(e); },
+    {enableHighAccuracy:false, timeout:10000, maximumAge:60000});
 }
 function onGeoOk(pos){
   const kind=_geoKind||"hospital";
