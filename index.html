@@ -964,17 +964,28 @@ function llmContext(){
 
 // Ejecuta la acción que decidió el LLM contra la DB simulada y devuelve el
 // HTML extra (tarjeta de turno/ticket). El número de ticket lo genera la app.
+let lastActionKey=null;   // firma de la última acción creada (anti-duplicado)
+const faltaDato='<div class="bubble hint" style="margin-top:8px">Me faltó un dato para completarlo. ¿Me lo repetís, por favor?</div>';
+function actionKey(a){ return [a.type,a.hospital,a.especialidad,a.horario,a.tipo_reclamo,a.lugar,a.problema,a.descripcion].join("|"); }
 function ejecutarAccion(a){
   if(!a || !a.type) return "";
-  if(a.type==="crear_turno" && a.hospital && a.especialidad && a.horario){
+  const key=actionKey(a);
+  if(a.type==="crear_turno"){
+    // Guarda: sin los 3 datos NO confirmar en silencio (evita "confirmado" fantasma).
+    if(!(a.hospital && a.especialidad && a.horario)) return faltaDato;
+    if(key===lastActionKey) return "";   // idempotencia: no duplicar una acción re-emitida
+    lastActionKey=key;
     DB.turnos_activos.push({hospital:a.hospital, esp:a.especialidad, cuando:a.horario, estado:"Confirmado"});
     return `<div class="card"><div class="row"><span>🗓️ ${esc(a.especialidad)}</span><span class="badge g">Confirmado</span></div>`+
       `<div class="row"><span>Hospital</span><b>${esc(a.hospital)}</b></div>`+
       `<div class="row"><span>Cuándo</span><b>${esc(a.horario)}</b></div></div>`;
   }
-  if(a.type==="crear_reclamo" && a.tipo_reclamo){
+  if(a.type==="crear_reclamo"){
+    if(!(a.tipo_reclamo && a.lugar && a.problema)) return faltaDato;
+    if(key===lastActionKey) return "";
+    lastActionKey=key;
     const id=nuevoTicketId(a.tipo_reclamo);
-    const titulo=`${a.problema||"Reclamo"} — ${a.lugar||"Misiones"}`;
+    const titulo=`${a.problema} — ${a.lugar}`;
     DB.reclamos.push({id, tipo:a.tipo_reclamo, titulo, resumen:a.descripcion||"", estado:"En gestión", detalle:a});
     const ico=a.tipo_reclamo==="elec"?"⚡":"🏥";
     return `<div class="card"><div class="row"><span>${ico} ${esc(titulo)}</span><span class="badge a">En gestión</span></div>`+

@@ -158,5 +158,20 @@ reset(); window.handle("quiero denunciar problemas en el hospital");
 check("'denunciar problemas en el hospital' → reclamo-hospital", flowState() && flowState().sub === "hosp");
 ev("flow=null");
 
+// ── chat-LLM: ejecutarAccion — idempotencia + guarda de acción incompleta ────
+console.log("── chat-LLM: ejecutarAccion (fixes del review)");
+ev("lastActionKey=null");
+const nT = DB.turnos_activos.length;
+const okT = window.ejecutarAccion({ type: "crear_turno", hospital: "Hospital Madariaga", especialidad: "Clínica médica", horario: "Vie 10/07 · 10:20" });
+check("crear_turno completo agrega 1 turno", DB.turnos_activos.length === nT + 1 && /Confirmado/.test(okT));
+const dupT = window.ejecutarAccion({ type: "crear_turno", hospital: "Hospital Madariaga", especialidad: "Clínica médica", horario: "Vie 10/07 · 10:20" });
+check("crear_turno re-emitido NO duplica (idempotencia)", DB.turnos_activos.length === nT + 1 && dupT === "");
+const nT2 = DB.turnos_activos.length;
+const incT = window.ejecutarAccion({ type: "crear_turno", hospital: "Hospital Madariaga", especialidad: null, horario: null });
+check("crear_turno incompleto NO crea y pide el dato (sin confirmación fantasma)", DB.turnos_activos.length === nT2 && /falt[oó] un dato/i.test(incT));
+const nR = DB.reclamos.length;
+const incR = window.ejecutarAccion({ type: "crear_reclamo", tipo_reclamo: "elec", lugar: null, problema: null });
+check("crear_reclamo incompleto NO crea y pide el dato", DB.reclamos.length === nR && /falt[oó] un dato/i.test(incR));
+
 console.log("\n" + (FAIL === 0 ? "🟢" : "🔴") + ` reclamos.test: ${PASS} PASS, ${FAIL} FAIL`);
 process.exit(FAIL === 0 ? 0 : 1);

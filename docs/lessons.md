@@ -77,3 +77,28 @@ En las listas tipo `.benefit` + `.amt` (turnos y "Mis reclamos"), con título la
 texto largo (ej. "En gestión"), el badge queda pegado al borde derecho. Es comportamiento
 heredado del componente original de turnos, no específico de reclamos. Si molesta, ajustar el
 layout de `.benefit`/`.amt` en el CSS (afecta a ambas pantallas por igual).
+
+### El endpoint /api/chat es un proxy LLM público SIN rate-limit (deuda) (2026-07-06)
+`netlify/functions/chat.js` proxea a Claude con `LLM_API_KEY` del entorno. Es público (CORS),
+sin auth ni rate-limit → un tercero puede quemar el presupuesto de la API key llamándolo en loop
+(vía `curl`; CORS solo frena navegadores de terceros, no scripts). Mitigado en costo POR REQUEST
+(tope body 40 KB, context 25 KB, history 16 msgs × 2000 chars, `max_tokens:1024`, `thinking:disabled`)
+pero NO en volumen. Pendiente: rate-limit por IP / edge. Lever parcial: setear `ALLOWED_ORIGIN`
+en Netlify (restringe CORS al dominio). Deploy: cargar `LLM_API_KEY` (y opcional `ALLOWED_ORIGIN`)
+en las env vars de Netlify. Ojo: `netlify/functions/tts.js` tiene el mismo patrón CORS `*`.
+
+### No confiar en el `action` del LLM para gatear estado sin validar (2026-07-06)
+El chat-LLM devuelve `action` (crear_turno/crear_reclamo/...) que el frontend ejecuta contra la
+DB. `ejecutarAccion` (index.html) debe: (1) validar que la action trae TODOS los campos requeridos
+antes de crear — si falta uno, pedirlo en vez de un no-op silencioso que deja un "confirmado"
+fantasma; (2) ser idempotente — el modelo puede re-emitir una action ya confirmada (ej. al decir
+"gracias") y duplicaría el ticket; se compara contra la firma de la última action creada
+(`lastActionKey`). El `OUTPUT_SCHEMA` de chat.js restringe `action.type` a un enum, así que no se
+pueden fabricar acciones novedosas. Tests en `test/reclamos.test.js`.
+
+### API de Claude: sonnet-5 / output_config / thinking:disabled son válidos (2026-07-06)
+Al revisar `chat.js` pueden "sonar" inventados `claude-sonnet-5`, `output_config.format` y
+`thinking:{type:"disabled"}` — NO lo son (skill `claude-api`, estado 2026): Sonnet 5 existe y
+soporta structured outputs; `{type:"disabled"}` se acepta en Sonnet 5 (solo Fable 5 lo rechaza);
+`stop_reason:"refusal"` es real y hay que chequearlo ANTES de leer `response.content`. No hay que
+cablear `temperature`/`top_p`/`budget_tokens` (dan 400 en la familia 4.7/4.8/Sonnet 5).

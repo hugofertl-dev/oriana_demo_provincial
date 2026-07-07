@@ -88,7 +88,7 @@ exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return json(405, { error: "Método no permitido" });
 
   const key = process.env.LLM_API_KEY;
-  if (!key) return json(500, { error: "Falta LLM_API_KEY en el entorno" });
+  if (!key) { console.error("chat.js: falta LLM_API_KEY en el entorno"); return json(500, { error: "Servicio no disponible" }); }
 
   // Tope duro de payload: el context real de la demo pesa ~4 KB; esto corta
   // el abuso del endpoint público con contexts gigantes (cada token cuesta).
@@ -142,8 +142,12 @@ exports.handler = async (event) => {
 };
 
 function cors() {
+  // Endpoint LLM pago: restringí el origen seteando ALLOWED_ORIGIN en Netlify
+  // (ej: https://tu-sitio.netlify.app). Sin setear cae a "*" (no rompe el deploy).
+  // NB: CORS solo frena abuso desde navegadores de terceros, no curl/servidor —
+  // el freno de volumen real es un rate-limit (pendiente, ver docs/lessons.md).
   return {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "*",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS"
   };
