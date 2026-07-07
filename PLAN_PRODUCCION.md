@@ -7,7 +7,10 @@
 > **cualquiera, desde cualquier dispositivo y red, la pruebe sin que se caiga
 > ni te deje ciego**.
 >
-> **Estado: PENDIENTE (0/5 fases).** Orden recomendado: 1 → 2 → 3 → 4 → 5.
+> **Estado: EN CURSO (Fase 1 código cerrado; 4 fases pendientes).** Orden recomendado: 1 → 2 → 3 → 4 → 5.
+> Fase 1 ítems 1-2 (rate-limit + CORS) IMPLEMENTADOS y cerrados (feature `rate-limit-apis`,
+> commit f0529c4, validado en deploy). Ítems 3-4 (spending limits + concurrencia) son acción
+> manual/operativa del usuario, sin código.
 > Las fases 1-3 son nivel Feature (entrevista `feature-start` obligatoria);
 > las 4-5 son mayormente Ajustes/Fixes directos. Marcados con ⚠️ los puntos
 > que necesitan una DECISIÓN del usuario y con 🖐️ los que son acción manual
@@ -49,6 +52,11 @@ ni límite de volumen. Compartir la URL ampliamente sin esto es regalar la API k
      con mensaje honesto ("hay mucha gente probando, esperá un momento").
 
 ## FASE 2 — Telemetría (enterarse cuando le falla a otro)
+
+> **Ítem 5 IMPLEMENTADO y cerrado** (feature `telemetria-log`): captura global en el
+> cliente → `/api/log` propio, persistido en Upstash, GET de lectura con token por header.
+> Ítem 6 (visibilidad server) cubierto en parte: `/api/log` hace `console.error` (panel
+> Netlify) + histórico consultable en Upstash. Ítem 7 (smoke test) PENDIENTE.
 
 Hoy no hay NINGÚN error tracking: si un tester tiene un crash en su dispositivo,
 la única forma de saberlo es que lo cuente. "Probar desde todos lados" solo sirve

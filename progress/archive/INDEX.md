@@ -14,3 +14,5 @@
 | permiso-microfono | Panel de permiso de micrófono (iOS/Safari) | 2026-07-06 | 39a6260 |
 | login-cuentas | Login con cuentas y persistencia (localStorage) | 2026-07-06 | b81a82f |
 | estabilidad-movil | Estabilidad de la demo en celulares iOS/Android — 5 fases (red, voz, races, performance, deuda) | 2026-07-07 | 78ccb3e |
+| rate-limit-apis | Rate-limit por IP (Upstash) en /api/chat y /api/tts + CORS unificado a ALLOWED_ORIGIN (FASE 1 blindaje de APIs) | 2026-07-07 | f0529c4 |
+| telemetria-log | Captura global de errores del cliente → /api/log (persistido en Upstash, GET con token por header) (FASE 2 telemetría) | 2026-07-07 | (pendiente) |

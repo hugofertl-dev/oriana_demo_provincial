@@ -26,3 +26,9 @@
   from = "/api/chat"
   to = "/.netlify/functions/chat"
   status = 200
+
+# Telemetría: el frontend POSTea errores del cliente a /api/log
+[[redirects]]
+  from = "/api/log"
+  to = "/.netlify/functions/log"
+  status = 200

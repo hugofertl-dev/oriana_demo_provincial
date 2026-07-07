@@ -89,11 +89,31 @@ index.html:1237). El prefijo `_` hace que Netlify NO trate el helper como endpoi
 - **FAIL-OPEN a propósito**: sin las env vars, o si Upstash falla/timeoutea (1.5 s), la request PASA
   y se loguea con `console.error`. El rate-limit ahorra presupuesto; la red final son los spending
   limits de Anthropic/ElevenLabs. Nunca tira la demo por un problema del contador.
-- **IP detrás de Netlify**: `x-nf-client-connection-ip` (fallback primer hop de `x-forwarded-for`).
+- **IP detrás de Netlify**: `x-nf-client-connection-ip` (fallback primer hop de `x-forwarded-for`,
+  topado a 45 chars). VALIDADO contra el deploy real (2026-07-07): rotando un
+  `x-nf-client-connection-ip` falso por request, el 429 aparece IGUAL → Netlify **sobrescribe** ese
+  header (es inspoofable) y el fallback a `x-forwarded-for` es código muerto en prod. Si algún día se
+  cambia de plataforma, revalidar este supuesto: es lo que sostiene todo el rate-limit.
 - **Env vars** (Netlify → Site config → Environment variables): `UPSTASH_REDIS_REST_URL`,
   `UPSTASH_REDIS_REST_TOKEN`, `ALLOWED_ORIGIN` (restringe CORS al dominio real; sin setear → `*`).
   `tts.js` ya lee `ALLOWED_ORIGIN` (antes tenía `*` hardcodeado; unificado con chat.js).
 - Test: `test/ratelimit.test.js` (mockea fetch; cubre borde, fail-open, extracción de IP).
+
+### Telemetría de errores del cliente en /api/log (Upstash) (2026-07-07)
+FASE 2 del PLAN_PRODUCCION. El cliente engancha `window` `error` + `unhandledrejection`
+(`index.html`, junto al warm-up) → POST a `/api/log` con `{msg, stack≤1000, ua, screen, url, ts}`,
+**sin datos del ciudadano**. Anti-loop: tope 10/sesión + el POST se traga cualquier fallo
+(`.catch()` + `try`), su rechazo NUNCA se re-loguea. `netlify/functions/log.js`: POST persiste en
+Upstash (`LPUSH errlog` + `LTRIM 0 199` + `EXPIRE 7d`), `console.error` (panel Netlify), 204 fail-open;
+GET devuelve los últimos 50. Reusa `_ratelimit.js` (POST 30/min, GET 10/min). Env var `LOG_READ_TOKEN`.
+- **REGLA (auditoría): token de auth SIEMPRE por header `Authorization: Bearer`, NUNCA en query string.**
+  Un secreto en la URL se filtra a los access logs de Netlify/CDN, al historial del navegador y al header
+  `Referer`. Aplica a cualquier endpoint protegido futuro. Lectura: `curl -H "Authorization: Bearer <tok>"`.
+- **REGLA: todo endpoint con token debe estar rate-limited** (aunque el 401 sea barato) — si no, el token
+  se brute-forcea sin freno. El GET de `/api/log` usa bucket propio `logread`.
+- Respuestas de lectura con `X-Content-Type-Options: nosniff`. Deuda anotada: si se construye un panel que
+  RENDERICE los logs, escapar `msg`/`stack` (XSS almacenado latente desde el POST público anónimo).
+- Test: `test/telemetria-log.test.js` (jsdom captura + handler server con fetch mockeado; 19 checks).
 
 ### No confiar en el `action` del LLM para gatear estado sin validar (2026-07-06)
 El chat-LLM devuelve `action` (crear_turno/crear_reclamo/...) que el frontend ejecuta contra la

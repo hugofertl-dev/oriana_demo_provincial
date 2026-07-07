@@ -2293,6 +2293,39 @@ const micNinos=setupMic("micBtn2", input2, (t)=>{ nbubble("Yo",esc(t)); input2.v
 window.addEventListener("load",()=>{ if("speechSynthesis" in window) speechSynthesis.getVoices(); });
 updateVoicePill();
 
+// Telemetría de errores del cliente (FASE 2): errores JS no capturados y promesas
+// rechazadas → POST a /api/log (se guarda en el server; ver netlify/functions/log.js).
+// SIN datos del ciudadano: solo diagnóstico técnico. Anti-loop en dos capas: (1) tope
+// de 10 por sesión (anti-storm); (2) el propio POST se traga cualquier fallo — su
+// rechazo nunca vuelve a loguearse (.catch) y un throw sincrónico no rompe la app (try).
+let _errCount=0;
+const ERR_CAP=10;
+function logClientError(msg,stack){
+  if(_errCount>=ERR_CAP) return;   // tope por sesión
+  _errCount++;
+  try{
+    fetch("/api/log",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        msg:String(msg||"").slice(0,500),
+        stack:String(stack||"").slice(0,1000),
+        ua:navigator.userAgent,
+        screen:(typeof _lastScreen!=="undefined" && _lastScreen)||"",
+        url:location.pathname,
+        ts:new Date().toISOString()
+      })
+    }).catch(()=>{});   // un fallo del propio log NO debe volver a loguear
+  }catch(e){/* nunca romper la app por intentar loguear */}
+}
+window.addEventListener("error",(e)=>{
+  logClientError(e&&e.message, e&&e.error&&e.error.stack);
+});
+window.addEventListener("unhandledrejection",(e)=>{
+  const r=e&&e.reason;
+  logClientError((r&&r.message)||String(r), r&&r.stack);
+});
+
 // Warm-up del backend: el PRIMER mensaje tras inactividad paga el cold start de la
 // función serverless — justo al arrancar la demo. Un OPTIONS barato (sin tokens ni
 // audio) la despierta mientras la usuaria todavía está en el login.
