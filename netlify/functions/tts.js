@@ -49,7 +49,8 @@ exports.handler = async (event) => {
     });
     if (!r.ok) {
       const detail = await r.text();
-      return json(r.status, { error: "ElevenLabs " + r.status, detail: detail.slice(0, 300) });
+      console.error("tts.js:", r.status, detail.slice(0, 300));   // detalle solo en el log del server
+      return json(r.status, { error: "TTS " + r.status });
     }
     const buf = Buffer.from(await r.arrayBuffer());
     return {

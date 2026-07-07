@@ -5,10 +5,14 @@
 > Objetivo: que la demo funcione 100% en celulares (donde más se testea) sin
 > congelarse, sin bugs visibles y sin problemas de performance.
 >
-> **Estado: PENDIENTE — ninguna fase empezada.** Cada fase se trabaja con el flujo
-> normal del harness (triaje Fix/Feature, test rojo donde aplique, verify.sh full,
-> verificación manual en celular para lo que jsdom no cubre). Las líneas citadas
-> corresponden a index.html del 2026-07-07 (commit ~c90d2ae); pueden correrse.
+> **Estado: IMPLEMENTADO (5/5 fases, 2026-07-07).** Tests por fase en
+> `test/estabilidad-fase{1..5}.test.js` (rojos antes de cada fix) + sabotage checks.
+> Decisiones: ítem 12 = queda auto-envío (decisión del usuario); ítem 23 = descartado
+> (POST no cacheable por CDN); ítem 26 = persistencia en localStorage con reset en
+> "Cerrar sesión"; ítem 32 = no encarado (cosmético). Pendiente de verificación
+> manual en celular: teclado/viewport (✓ verificado), voz flash_v2_5 (escuchar),
+> back de Android, indicador de mic, voz tras bloquear pantalla.
+> Las líneas citadas corresponden a index.html del commit ~c90d2ae; pueden correrse.
 
 ---
 

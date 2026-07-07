@@ -2,7 +2,10 @@
 # Publica los archivos estáticos y expone la función en /api/tts
 
 [build]
-  publish = "."
+  # dist/ contiene SOLO lo publicable (ver scripts/stage_publish.sh):
+  # publish="." exponía docs/, progress/, test/ y CLAUDE.md por URL.
+  publish = "dist"
+  command = "bash scripts/stage_publish.sh"
   functions = "netlify/functions"
 
 # Las fotos (~fijas) se cachean fuerte: sin esto los 6 JPEG se revalidan en cada

@@ -43,8 +43,9 @@
     width:min(430px,100vw);height:min(880px,100vh);height:min(880px,100dvh);background:var(--white);
     position:relative;overflow:hidden;border-radius:38px;box-shadow:0 24px 70px rgba(0,0,0,.45);
   }
-  /* 100dvh: en iOS 100vh mide con la barra de Safari colapsada y tapa la tabbar */
-  @media(max-width:460px){ .phone{border-radius:0;height:100vh;height:100dvh} }
+  /* 100dvh: en iOS 100vh mide con la barra de Safari colapsada y tapa la tabbar.
+     (max-height:500px) = celular apaisado: también a pantalla completa, sin marco. */
+  @media(max-width:460px),(max-height:500px){ .phone{border-radius:0;height:100vh;height:100dvh} }
 
   .screen{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg)}
   .screen.hidden{display:none!important}  /* gana a #screen-home/#screen-login que fijan display:flex por ID */
@@ -616,6 +617,26 @@ const DB = {
   reclamos:[]
 };
 
+/* ---- Persistencia de la demo: turnos/reclamos/favoritos sobreviven a un
+   refresh accidental frente a la audiencia. "Cerrar sesión" resetea todo. ---- */
+const DEMO_DB_KEY="oriana_demo_db";
+let _demoPersisted=null;
+try{ _demoPersisted=JSON.parse(localStorage.getItem(DEMO_DB_KEY)||"null"); }catch(e){}
+if(_demoPersisted){
+  if(Array.isArray(_demoPersisted.turnos_activos)) DB.turnos_activos=_demoPersisted.turnos_activos;
+  if(Array.isArray(_demoPersisted.reclamos)) DB.reclamos=_demoPersisted.reclamos;
+}
+function saveDemoData(){
+  try{
+    localStorage.setItem(DEMO_DB_KEY, JSON.stringify({
+      turnos_activos: DB.turnos_activos,
+      reclamos: DB.reclamos,
+      favs: (typeof favs!=="undefined" && favs) ? favs : {}   // favs vive en el script de eventos
+    }));
+  }catch(e){}
+}
+function resetDemoData(){ try{ localStorage.removeItem(DEMO_DB_KEY); }catch(e){} }
+
 /* ============================================================
    AUTENTICACIÓN (demo, persistida en localStorage)
    ⚠️ Login SIMULADO: las contraseñas quedan en texto plano en el navegador.
@@ -663,6 +684,7 @@ function doSignup(){
 
 function logout(){
   setSession(null); applyUser(null);
+  resetDemoData();   // la próxima demo arranca limpia (turnos/reclamos/favoritos de fábrica)
   ["loginEmail","loginPass","suEmail","suNombre","suApellido","suPass","suPass2"].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=""; });
   const le=document.getElementById("loginErr"); if(le) le.textContent="";
   show("login");
@@ -833,6 +855,18 @@ const EL = {
   get proxy(){ return ""; }   // sin proxy: llamada directa a ElevenLabs
 };
 const audioCache = {};      // texto -> objectURL (evita re-generar)
+// Tope del cache: en una demo larga con voz los blobs de audio crecen sin límite.
+// FIFO de ~30 entradas; lo desalojado libera su objectURL.
+const _audioCacheKeys = [];
+function cacheAudio(text, url){
+  if(!(text in audioCache)) _audioCacheKeys.push(text);
+  audioCache[text]=url;
+  while(_audioCacheKeys.length>30){
+    const old=_audioCacheKeys.shift();
+    try{ URL.revokeObjectURL(audioCache[old]); }catch(e){}
+    delete audioCache[old];
+  }
+}
 let currentAudio = null;
 // TTS por Web Audio: un AudioContext suspendible. A diferencia del <audio>,
 // suspend() libera la sesión de audio de iOS AL INSTANTE — si queda tomada,
@@ -961,7 +995,7 @@ async function elevenSpeak(text){
   if(!res.ok) throw new Error("HTTP "+res.status);
   const blob=await res.blob();
   const url=URL.createObjectURL(blob);
-  audioCache[text]=url;
+  cacheAudio(text, url);
   return url;
 }
 
@@ -975,7 +1009,7 @@ async function serverSpeak(text){
   if(!res.ok) throw new Error("HTTP "+res.status);
   const blob=await res.blob();
   const url=URL.createObjectURL(blob);
-  audioCache[text]=url;
+  cacheAudio(text, url);
   return url;
 }
 
@@ -1022,7 +1056,8 @@ function bubble(who, html, extra=""){
   if(who==="O") linkifyTels(m);
   chatlog.appendChild(m);
   chatlog.parentElement.scrollTop=1e9;
-  window.scrollTo(0,1e9);
+  // OJO: acá NO va window.scrollTo — con el teclado abierto en iOS producía saltos
+  // de toda la página; los scrollTop de los contenedores alcanzan.
   document.getElementById("screen-chat").scrollTop=1e9;
   return m;
 }
@@ -1135,6 +1170,7 @@ function ejecutarAccion(a){
     if(key===lastActionKey) return "";   // idempotencia: no duplicar una acción re-emitida
     lastActionKey=key;
     DB.turnos_activos.push({hospital:a.hospital, esp:a.especialidad, cuando:a.horario, estado:"Confirmado"});
+    saveDemoData();
     return `<div class="card"><div class="row"><span>🗓️ ${esc(a.especialidad)}</span><span class="badge g">Confirmado</span></div>`+
       `<div class="row"><span>Hospital</span><b>${esc(a.hospital)}</b></div>`+
       `<div class="row"><span>Cuándo</span><b>${esc(a.horario)}</b></div></div>`;
@@ -1146,6 +1182,7 @@ function ejecutarAccion(a){
     const id=nuevoTicketId(a.tipo_reclamo);
     const titulo=`${a.problema} — ${a.lugar}`;
     DB.reclamos.push({id, tipo:a.tipo_reclamo, titulo, resumen:a.descripcion||"", estado:"En gestión", detalle:a});
+    saveDemoData();
     const ico=a.tipo_reclamo==="elec"?"⚡":"🏥";
     return `<div class="card"><div class="row"><span>${ico} ${esc(titulo)}</span><span class="badge a">En gestión</span></div>`+
       `<div class="row"><span>Ticket</span><b>${id}</b></div></div>`+
@@ -1411,6 +1448,7 @@ function turnoStep(text){
     }
     if(isYes(t)){
       DB.turnos_activos.push({hospital:flow.data.hospital.nombre, esp:flow.data.esp, cuando:flow.data.cuando, estado:"Confirmado"});
+      saveDemoData();
       const d=flow.data; flow=null;
       return typing(()=>pushBot(`¡Listo, María! 🎉 Tu turno quedó <strong>confirmado</strong>.`+
         `<div class="card"><div class="row"><span>${d.hospital.nombre}</span><span class="badge g">Confirmado</span></div>`+
@@ -1517,6 +1555,7 @@ function reclamoConfirm(t){
     const titulo = sub==="elec" ? `${d.tipo} — ${d.localidad}` : `${d.problema} — ${d.hospital.nombre}`;
     const resumen = sub==="elec" ? `${d.direccion} · Desde: ${d.desde}` : d.desc;
     DB.reclamos.push({id, tipo:sub, titulo, resumen, estado:"En gestión", detalle:d});
+    saveDemoData();
     flow=null;
     const ico = sub==="elec" ? "⚡" : "🏥";
     return typing(()=>pushBot(`¡Listo, María! 🎉 Registré tu reclamo. Tu número de ticket es <strong>${id}</strong>.`+
@@ -2184,6 +2223,7 @@ function ninosRoute(text){
         chipRow([{label:"Ver mis turnos",send:"__verturnos"},{label:"Gracias",send:"gracias"}]));
       speak("Listo. Te agendé una entrevista de acompañamiento con el equipo. Es confidencial y podés ir acompañada.");
       DB.turnos_activos.push({hospital:"Centro de la Mujer — Municipio", esp:"Acompañamiento (psicología + legal)", cuando:"Jue 9/07 · 10:00", estado:"Confirmado"});
+      saveDemoData();
     });
     return true;
   }
@@ -2268,7 +2308,10 @@ function startAssistant(){
   llmQueue.length=0;     // mensajes encolados de la conversación vieja: afuera
   stopAudio();
   show("chat");   // como el chat está vacío, dispara greet() de nuevo
-  setTimeout(()=>{ const inp=document.getElementById("input"); if(inp) inp.focus(); },300);
+  // Autofocus SOLO con teclado físico: en táctil abre el teclado virtual y tapa
+  // los chips de guía justo al entrar al chat.
+  const tactil = window.matchMedia && matchMedia("(pointer:coarse)").matches;
+  if(!tactil) setTimeout(()=>{ const inp=document.getElementById("input"); if(inp) inp.focus(); },300);
 }
 function renderHome(){
   const el=document.getElementById("homeName"); if(el) el.textContent=DB.ciudadano.nombre;
@@ -2309,6 +2352,8 @@ const EVENTOS=[
    desc:"Circuito de 10K por la costanera del Paraná y una caminata recreativa de 3K para toda la familia. Hidratación, guardarropa y kit del corredor. Inscripción previa obligatoria."}
 ];
 let favs={};
+// favoritos persistidos (la carga de turnos/reclamos vive junto a la definición de DB)
+if(_demoPersisted && _demoPersisted.favs && typeof _demoPersisted.favs==="object") favs=_demoPersisted.favs;
 function evCard(e, i){
   const full = (i % 3 === 0);   // patrón: 1 completo + 2 al 50%, repetido
   return `<div class="ev-card ${full?'full':''}" onclick="openEvento('${e.id}')">
@@ -2332,7 +2377,7 @@ function renderLinda(){
   el.innerHTML=lista.map((e,i)=>evCard(e,i)).join("");
 }
 function setLindaFilter(f){ lindaFilter=f; renderLinda(); }
-function toggleFav(id){ favs[id]=!favs[id]; renderLinda(); if(!document.getElementById("screen-evento").classList.contains("hidden")) renderEvento(id); }
+function toggleFav(id){ favs[id]=!favs[id]; saveDemoData(); renderLinda(); if(!document.getElementById("screen-evento").classList.contains("hidden")) renderEvento(id); }
 
 function renderEvento(id){
   const e=EVENTOS.find(x=>x.id===id); if(!e) return;
