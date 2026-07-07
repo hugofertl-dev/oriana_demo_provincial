@@ -16,7 +16,7 @@
     {
       "id": "estabilidad-movil",
       "titulo": "Plan de estabilidad de la demo en celulares (iOS/Android) — 5 fases",
-      "status": "planned",
+      "status": "in_progress",
       "criterios": [
         "Ver PLAN_ESTABILIDAD.md (raíz): 32 ítems verificados en código, divididos en 5 fases priorizadas. Cada fase se triajea y trabaja por separado con el flujo normal."
       ],
@@ -25,7 +25,7 @@
       "blockedBy": [],
       "owner": "",
       "creada": "2026-07-07",
-      "nota": "Origen: auditoría profunda 2026-07-07 (3 auditores paralelos). Fase 1 = críticos que pueden matar la demo en vivo. Ninguna fase empezada."
+      "nota": "Origen: auditoría profunda 2026-07-07 (3 auditores paralelos). FASE 1 implementada 2026-07-07 (ítems 1-6, test estabilidad-fase1 + verify full verde); falta verificación manual en celular de viewport/teclado. Fases 2-5 pendientes."
     }
   ]
 }

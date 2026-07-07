@@ -162,3 +162,14 @@ Al revisar `chat.js` pueden "sonar" inventados `claude-sonnet-5`, `output_config
 soporta structured outputs; `{type:"disabled"}` se acepta en Sonnet 5 (solo Fable 5 lo rechaza);
 `stop_reason:"refusal"` es real y hay que chequearlo ANTES de leer `response.content`. No hay que
 cablear `temperature`/`top_p`/`budget_tokens` (dan 400 en la familia 4.7/4.8/Sonnet 5).
+
+### Red móvil: TODO fetch necesita timeout, y Netlify corta a ~10 s (2026-07-07)
+En 4G mala un `fetch` sin señal cuelga MINUTOS: typing infinito, `llmBusy` trabado, demo muerta.
+Contrato del proyecto: todo request de red del frontend va por `fetchTimeout(url,opts,ms)`
+(index.html; AbortController, no `AbortSignal.timeout` — iOS<16). Lado server: las funciones de
+Netlify se cortan a ~10-26 s, así que los clientes HTTP internos deben fallar ANTES de eso
+(`chat.js`: SDK Anthropic con `timeout:8000, maxRetries:0` — los defaults son 10 min y 2 retries;
+`tts.js`: `AbortSignal.timeout(8000)`), si no el navegador nunca ve el error y no puede reintentar.
+Además el reset de conversación (`startAssistant`) invalida respuestas en vuelo con `llmEpoch` y
+vacía `llmQueue`: sin eso, una respuesta vieja se inyecta, el historial arranca con rol assistant
+y `/api/chat` lo rechaza con 400 para siempre (`llmDisabled` permanente).

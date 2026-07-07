@@ -37,6 +37,7 @@ exports.handler = async (event) => {
   try {
     const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}`, {
       method: "POST",
+      signal: AbortSignal.timeout(8000),   // Netlify corta a ~10 s: sin esto el cliente nunca ve la falla
       headers: { "xi-api-key": key, "Content-Type": "application/json", "Accept": "audio/mpeg" },
       body: JSON.stringify({
         text,

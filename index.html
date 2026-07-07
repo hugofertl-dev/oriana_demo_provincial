@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <title>ORIANA — App móvil (Demo)</title>
 <style>
   :root{
@@ -40,16 +40,18 @@
   :focus-visible{outline:3px solid var(--primary);outline-offset:2px;border-radius:6px}
   button:focus:not(:focus-visible),input:focus:not(:focus-visible),textarea:focus:not(:focus-visible){outline:none}
   .phone{
-    width:min(430px,100vw);height:min(880px,100vh);background:var(--white);
+    width:min(430px,100vw);height:min(880px,100vh);height:min(880px,100dvh);background:var(--white);
     position:relative;overflow:hidden;border-radius:38px;box-shadow:0 24px 70px rgba(0,0,0,.45);
   }
-  @media(max-width:460px){ .phone{border-radius:0;height:100vh} }
+  /* 100dvh: en iOS 100vh mide con la barra de Safari colapsada y tapa la tabbar */
+  @media(max-width:460px){ .phone{border-radius:0;height:100vh;height:100dvh} }
 
   .screen{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg)}
   .screen.hidden{display:none!important}  /* gana a #screen-home/#screen-login que fijan display:flex por ID */
 
   /* ---------- HOME ---------- */
-  #screen-home{overflow:hidden;display:flex;flex-direction:column;background:var(--bg);padding-bottom:84px}
+  #screen-home{overflow:hidden;display:flex;flex-direction:column;background:var(--bg);
+    padding-bottom:84px;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
   .statusbar{display:flex;justify-content:space-between;align-items:center;color:var(--ink);
     font-size:14px;font-weight:var(--fw-semi);padding:14px 24px 4px}
   .statusbar .ic{font-size:12px;letter-spacing:2px;opacity:.85}
@@ -72,7 +74,8 @@
   .start-btn:active{transform:scale(.98)}
 
   /* ---------- TAB BAR ---------- */
-  #tabbar{position:absolute;left:0;right:0;bottom:0;height:78px;background:#fff;
+  #tabbar{position:absolute;left:0;right:0;bottom:0;height:78px;height:calc(78px + env(safe-area-inset-bottom,0px));
+    background:#fff;padding-bottom:env(safe-area-inset-bottom,0px);
     border-top:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-around;
     padding-top:12px;z-index:20}
   #tabbar.hidden{display:none}
@@ -148,8 +151,10 @@
   .warnbar b{color:#6B4E09}
 
   /* ---------- COMPOSER (sticky) ---------- */
-  .composer{position:sticky;bottom:78px;background:linear-gradient(180deg,rgba(246,246,246,0),var(--bg) 34%);
-    padding:8px 12px 14px}  /* bottom = alto de #tabbar: el composer se apila sobre la barra */
+  .composer{position:sticky;bottom:78px;   /* bottom = alto de #tabbar: el composer se apila sobre la barra */
+    bottom:max(calc(78px + env(safe-area-inset-bottom,0px)), var(--kb,0px));  /* --kb = alto del teclado (visualViewport, iOS) */
+    background:linear-gradient(180deg,rgba(246,246,246,0),var(--bg) 34%);
+    padding:8px 12px 14px}
   .composer .inner{display:flex;align-items:flex-end;gap:8px;background:var(--surface);border:1px solid var(--border);
     border-radius:var(--r-pill);padding:6px 6px 6px 18px;box-shadow:var(--sh-md)}
   .composer.rec .inner{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft)}
@@ -892,10 +897,18 @@ async function webAudioPlay(url, opts={}){
   src.start(0);
 }
 
+// fetch con timeout duro: en 4G mala un request colgado congela la demo (typing
+// infinito / voz que nunca llega). AbortController y no AbortSignal.timeout por iOS<16.
+function fetchTimeout(url, opts, ms){
+  const c=new AbortController();
+  const t=setTimeout(()=>c.abort(), ms);
+  return fetch(url, {...opts, signal:c.signal}).finally(()=>clearTimeout(t));
+}
+
 async function elevenSpeak(text){
   const key=EL.key, voice=EL.voice;
   const base=EL.proxy || "https://api.elevenlabs.io";
-  const res=await fetch(`${base}/v1/text-to-speech/${voice}`,{
+  const res=await fetchTimeout(`${base}/v1/text-to-speech/${voice}`,{
     method:"POST",
     headers:{ "xi-api-key":key, "Content-Type":"application/json", "Accept":"audio/mpeg" },
     body:JSON.stringify({
@@ -903,7 +916,7 @@ async function elevenSpeak(text){
       model_id:"eleven_multilingual_v2",
       voice_settings:{ stability:EL.stab, similarity_boost:0.75, style:EL.style, use_speaker_boost:true }
     })
-  });
+  }, 10000);
   if(!res.ok) throw new Error("HTTP "+res.status);
   const blob=await res.blob();
   const url=URL.createObjectURL(blob);
@@ -913,11 +926,11 @@ async function elevenSpeak(text){
 
 // Pide el audio a la función serverless /api/tts (la key vive en el servidor)
 async function serverSpeak(text){
-  const res=await fetch("/api/tts",{
+  const res=await fetchTimeout("/api/tts",{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body:JSON.stringify({ text, stability:EL.stab, style:EL.style })
-  });
+  }, 10000);
   if(!res.ok) throw new Error("HTTP "+res.status);
   const blob=await res.blob();
   const url=URL.createObjectURL(blob);
@@ -1032,6 +1045,7 @@ const USE_LLM = true;
 let llmDisabled = false;   // tras varios fallos seguidos, la sesión sigue en modo básico (regex)
 let llmFailCount = 0;      // fallos consecutivos del LLM (transitorio vs persistente)
 let llmHistory = [];       // [{role:"user"|"assistant", content}]
+let llmEpoch = 0;          // se incrementa al resetear la conversación: invalida respuestas en vuelo
 
 function llmContext(){
   const c=DB.ciudadano;
@@ -1092,18 +1106,25 @@ function ejecutarAccion(a){
 }
 
 async function llmHandle(text){
+  const epoch=llmEpoch;   // si cambia mientras el fetch vuela (reset), la respuesta se descarta
   llmHistory.push({role:"user", content:text});
+  // Tope del historial: el server usa slice(-16) y corta a 40 KB con 413; recortamos acá.
+  if(llmHistory.length>16){
+    llmHistory.splice(0, llmHistory.length-16);
+    if(llmHistory[0].role==="assistant") llmHistory.shift();   // el server exige que empiece con user
+  }
   const t=document.createElement("div");            // typing persistente (el local dura 650ms fijos)
   t.className="msg bot typing";
   t.innerHTML=`<div class="who">O</div><div class="bubble"><span></span><span></span><span></span></div>`;
   chatlog.appendChild(t); scrollChat();
   try{
-    const res=await fetch("/api/chat",{
+    const res=await fetchTimeout("/api/chat",{
       method:"POST", headers:{"Content-Type":"application/json"},
       body:JSON.stringify({ messages:llmHistory, context:llmContext() })
-    });
+    }, 15000);   // 4G mala: sin esto el fetch cuelga minutos con typing infinito
     if(!res.ok) throw new Error("HTTP "+res.status);
     const out=await res.json();
+    if(epoch!==llmEpoch){ t.remove(); return true; }   // la conversación se reseteó: respuesta vieja, afuera
     if(typeof out.reply!=="string" || !out.reply.trim()) throw new Error("respuesta sin reply");
     t.remove();
     llmFailCount=0;   // respondió bien: reseteamos el contador de fallos
@@ -1116,6 +1137,7 @@ async function llmHandle(text){
     return true;
   }catch(err){
     t.remove();
+    if(epoch!==llmEpoch) return true;   // error de un request ya invalidado por reset: no tocar la sesión nueva
     console.warn("Chat LLM error:", err.message);
     llmHistory.pop();          // sacamos el turno que falló (se reintenta limpio)
     llmFailCount++;
@@ -1159,7 +1181,8 @@ function norm(s){ return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]
 const RX_CANCEL=/^(cancelar|cancela|salir|olvidalo|olvidal|dejalo|dejar|basta|parar|pará|terminar|no quiero (seguir|nada)|ya no)\b/;
 
 /* interpretación flexible de sí / no */
-const RX_YES=/\b(si|sí|sip|sipi|s|dale|ok|oka|okey|okay|listo|acepto|aceptar|acepta|confirm(o|ar|a|ado|amos)?|correcto|de una|obvio|obviamente|claro|seguro|perfecto|va|vale|afirmativo|adelante|proced[eé]|hacelo|hazlo|por supuesto|exacto|tal cual|positivo|de acuerdo|joya|bárbaro|barbaro|si quiero|quiero)\b/;
+const RX_YES=/\b(si|sí|sip|sipi|s|dale|ok|oka|okey|okay|listo|acepto|aceptar|acepta|confirm(o|ar|a|ado|amos)?|correcto|de una|obvio|obviamente|claro|seguro|perfecto|va|vale|afirmativo|adelante|proced[eé]|hacelo|hazlo|por supuesto|exacto|tal cual|positivo|de acuerdo|joya|bárbaro|barbaro|si quiero)\b/;
+/* OJO: "quiero" suelto NO es un sí — "Quiero sacar un turno" en paso confirm confirmaba el turno viejo. */
 const RX_NO=/\b(no|nop|nope|cancelar|cancela|cancelá|negativo|mejor no|no gracias|para nada|otro d[ií]a|otra fecha|cambiar|olvidalo|no quiero)\b/;
 function isYes(t){ return RX_YES.test(t); }
 function isNo(t){ return RX_NO.test(t); }
@@ -2102,6 +2125,19 @@ setupMic("micBtn2", input2, (t)=>{ nbubble("Yo",esc(t)); input2.value=""; autoGr
    ============================================================ */
 window.addEventListener("load",()=>{ if("speechSynthesis" in window) speechSynthesis.getVoices(); });
 updateVoicePill();
+
+// Teclado virtual en iOS: el layout NO se achica (interactive-widget solo lo respeta
+// Android Chrome), pero visualViewport sí. --kb = alto tapado por el teclado; el
+// composer usa max(78px+safe-area, var(--kb)) para quedar siempre a la vista.
+if(window.visualViewport){
+  const vv=window.visualViewport;
+  const kbAdjust=()=>{
+    const kb=Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+    document.documentElement.style.setProperty("--kb", kb+"px");
+  };
+  vv.addEventListener("resize", kbAdjust);
+  vv.addEventListener("scroll", kbAdjust);
+}
 </script>
 
 <script>
@@ -2112,6 +2148,9 @@ function startAssistant(){
   // Siempre arranca una conversación nueva
   const log=document.getElementById("chatlog"); if(log) log.innerHTML="";
   flow=null; replyWithVoice=false; llmHistory=[];
+  llmEpoch++;            // invalida cualquier respuesta LLM en vuelo (si se inyectara, el historial
+                         // arrancaría con role assistant y el server lo rechazaría SIEMPRE con 400)
+  llmQueue.length=0;     // mensajes encolados de la conversación vieja: afuera
   stopAudio();
   show("chat");   // como el chat está vacío, dispara greet() de nuevo
   setTimeout(()=>{ const inp=document.getElementById("input"); if(inp) inp.focus(); },300);
