@@ -870,11 +870,9 @@ async function webAudioPlay(url, opts={}){
   ttsSrcNode=src;
   src.onended=()=>{
     ttsSrcNode=null;
-    if(typeof micLog==="function") micLog("TTS(WebAudio) ended → suspend()");  // DEBUG TEMPORAL mic
-    ttsCtx.suspend().then(()=>{ if(typeof micLog==="function") micLog("AudioContext suspendido (sesión liberada)"); }).catch(()=>{});
+    ttsCtx.suspend().catch(()=>{});   // liberar la sesión de audio YA (bug mic iOS)
     if(opts.onEnd) opts.onEnd();
   };
-  if(typeof micLog==="function") micLog("TTS play() por WebAudio");  // DEBUG TEMPORAL mic
   src.start(0);
 }
 
@@ -925,22 +923,19 @@ async function speak(text, opts={}){
       await webAudioPlay(url, opts);   // camino primario: AudioContext suspendible
       return;
     }catch(werr){
-      if(typeof micLog==="function") micLog("WebAudio falló ("+werr.message+") → <audio>");  // DEBUG TEMPORAL mic
+      console.warn("WebAudio falló, uso <audio>:", werr.message);
     }
     // Fallback: elemento <audio> primeado (comportamiento anterior)
     if(!ttsAudio) ttsAudio=new Audio();
     ttsAudio.onended=()=>{
-      if(typeof micLog==="function") micLog("TTS(<audio>) ended");  // DEBUG TEMPORAL mic
       try{ ttsAudio.removeAttribute("src"); ttsAudio.load(); }catch(e){}
       if(opts.onEnd) opts.onEnd();
     };
     ttsAudio.src=url;
     currentAudio=ttsAudio;
-    if(typeof micLog==="function") micLog("TTS play() por <audio>");  // DEBUG TEMPORAL mic
     await ttsAudio.play();   // si iOS lo bloquea (no primeado), rechaza -> catch -> voz navegador
   }catch(err){
     console.warn("ElevenLabs falló, uso voz del navegador:", err.message);
-    if(typeof micLog==="function") micLog("TTS FALLBACK navegador: "+err.message);  // DEBUG TEMPORAL mic
     if(opts.onError) opts.onError(err);
     browserSpeak(clean);
   }
@@ -1793,25 +1788,6 @@ function pedirDireccion(){
     `Escribime tu dirección o localidad y te doy ${que} más cercano.`));
 }
 
-// ── DEBUG TEMPORAL mic (quitar al cerrar el fix): overlay visible con ?micdebug=1 ──
-const MIC_DEBUG = /[?&]micdebug/.test(location.search);
-function micLog(m){
-  if(!MIC_DEBUG) return;
-  let d=document.getElementById("micdbg");
-  if(!d){
-    d=document.createElement("div"); d.id="micdbg";
-    d.style.cssText="position:absolute;top:0;left:0;right:0;z-index:99;background:rgba(0,0,0,.82);color:#7CFC7C;font:10px/1.5 monospace;padding:4px 8px;max-height:45%;overflow:auto;white-space:pre-wrap";
-    d.onclick=()=>{ d.textContent=""; };
-    (document.querySelector(".phone")||document.body).appendChild(d);
-  }
-  const ts=new Date().toISOString().slice(14,23);
-  d.textContent+=`[${ts}] ${m}\n`; d.scrollTop=1e9;
-}
-if(MIC_DEBUG){
-  window.addEventListener("error",e=>micLog("JS ERROR: "+e.message));
-}
-// ── fin DEBUG TEMPORAL ──
-
 function setupMic(btnId, targetInput, onFinal, composerId){
   const btn=document.getElementById(btnId);
   const comp=document.getElementById(composerId);
@@ -1829,10 +1805,11 @@ function setupMic(btnId, targetInput, onFinal, composerId){
       },1600);
       return;
     }
-    // iOS/WebKit: tras reproducir TTS por <audio>, la sesión de audio del sistema
-    // queda en "reproducción" y el dictado arranca SORDO (onstart sin onresult).
-    // Cura: soltar el audio de reproducción y reactivar la captura con un stream
-    // de mic fresco ANTES de rec.start(). Con permiso concedido no re-pregunta.
+    // Bug iOS (mic sordo tras TTS): si la sesión de audio del sistema quedó en
+    // reproducción, el dictado arranca sin captura (onstart pero nunca resulta).
+    // La cura principal es el ctx.suspend() del TTS (stopAudio/webAudioPlay);
+    // acá además se refresca la captura y, si el track viene muteado por iOS,
+    // se espera el unmute antes de arrancar (defensa extra del mismo bug).
     stopAudio();
     if(ttsAudio){ try{ ttsAudio.removeAttribute("src"); ttsAudio.load(); }catch(e){} }
     if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
@@ -1841,48 +1818,33 @@ function setupMic(btnId, targetInput, onFinal, composerId){
         _micStream=await navigator.mediaDevices.getUserMedia({audio:true});
         if(old) old.getTracks().forEach(tr=>tr.stop());
         const track=_micStream.getAudioTracks()[0];
-        micLog("stream fresco: muted="+track.muted+" state="+track.readyState);
-        track.onmute=()=>micLog("track → MUTED");
-        track.onunmute=()=>micLog("track → UNMUTED");
         if(track.muted){
-          // iOS deja el track de captura MUTEADO ~15 s tras reproducir TTS.
-          // Si el dictado arranca así, nace sordo (onaudiostart sin habla).
-          // Esperar el unmute antes de rec.start(); tope 12 s por las dudas.
           targetInput.placeholder="🎙️ Preparando el micrófono…";
-          micLog("track muteado → espero unmute (tope 12 s)");
-          const t0=Date.now();
           await new Promise(res=>{
-            const to=setTimeout(()=>{ micLog("TIMEOUT de unmute a los 12 s → start igual"); res(); },12000);
-            track.addEventListener("unmute",()=>{ clearTimeout(to); micLog("unmute a los "+((Date.now()-t0)/1000).toFixed(1)+" s"); res(); },{once:true});
+            const to=setTimeout(res,12000);
+            track.addEventListener("unmute",()=>{ clearTimeout(to); res(); },{once:true});
           });
         }
-      }catch(e){ micLog("refresh de stream FALLÓ: "+e.name+" — "+e.message); }
+      }catch(e){ console.warn("refresh de mic falló:", e); }
     }
-    micLog("rec.start() →");
-    try{ rec.start(); micLog("rec.start() OK (sin excepción)"); }
-    catch(e){ micLog("rec.start() EXCEPCIÓN: "+e.name+" — "+e.message); }
+    try{ rec.start(); }catch(e){ console.warn("rec.start():", e); }
   }
 
   if(rec){
     rec.lang="es-ES"; rec.interimResults=true; rec.continuous=false;
-    rec.onstart=()=>{ micLog("onstart"); listening=true; btn.classList.add("on"); comp.classList.add("rec"); targetInput.placeholder="🎙️ Te escucho..."; };
-    rec.onaudiostart=()=>micLog("onaudiostart (iOS abrió la captura)");  // DEBUG TEMPORAL mic
-    rec.onsoundstart=()=>micLog("onsoundstart (detecta sonido)");        // DEBUG TEMPORAL mic
-    rec.onspeechstart=()=>micLog("onspeechstart (detecta habla)");       // DEBUG TEMPORAL mic
-    rec.onresult=e=>{ let txt=""; for(const r of e.results) txt+=r[0].transcript; micLog("onresult: «"+txt.slice(0,40)+"»"); targetInput.value=txt; autoGrow(targetInput); };
-    rec.onerror=(e)=>{ micLog("onerror: "+(e&&e.error)); if(e && (e.error==="not-allowed"||e.error==="service-not-allowed")){ _micStream=null; openMicPanel(startDictation); } };
-    rec.onend=()=>{ micLog("onend (input="+targetInput.value.trim().length+" chars)"); listening=false; btn.classList.remove("on"); comp.classList.remove("rec");
+    rec.onstart=()=>{ listening=true; btn.classList.add("on"); comp.classList.add("rec"); targetInput.placeholder="🎙️ Te escucho..."; };
+    rec.onresult=e=>{ let txt=""; for(const r of e.results) txt+=r[0].transcript; targetInput.value=txt; autoGrow(targetInput); };
+    rec.onerror=(e)=>{ if(e && (e.error==="not-allowed"||e.error==="service-not-allowed")){ _micStream=null; openMicPanel(startDictation); } };
+    rec.onend=()=>{ listening=false; btn.classList.remove("on"); comp.classList.remove("rec");
       targetInput.placeholder="Escribí o tocá el micrófono para hablar...";
       const t=targetInput.value.trim(); if(t){ replyWithVoice=true; onFinal(t,false); }  // habló -> responde por voz
     };
   }
 
   btn.onclick=async()=>{
-    micLog("tap mic (listening="+listening+", ctx="+(ttsCtx?ttsCtx.state:"null")+", ttsAudio="+(ttsAudio?(ttsAudio.paused?"paused":"PLAYING"):"null")+", synth="+(("speechSynthesis" in window)&&speechSynthesis.speaking?"SPEAKING":"idle")+")");
     primeAudio();   // desbloquea el audio de iOS mientras esto es un gesto de usuario
-    if(listening){ micLog("→ ya escuchando: rec.stop()"); if(rec) rec.stop(); return; }
+    if(listening){ if(rec) rec.stop(); return; }
     const st=await micPermissionState();
-    micLog("micPermissionState = "+st);
     if(st==="granted"){ startDictation(); return; }
     openMicPanel(startDictation);   // explica + dispara getUserMedia; si concede, arranca el dictado
   };

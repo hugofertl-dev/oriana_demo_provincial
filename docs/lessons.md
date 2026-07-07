@@ -114,7 +114,19 @@ Ojo: `--screenshot` a secas captura ANTES de que corra el script inyectado en `l
 (sale siempre el login) — envolver el `show(...)` en `setTimeout(...,400)` y agregar
 `--virtual-time-budget=3000` para que Chrome espere a que la app navegue (2026-07-07).
 
-### Optimizar fotos para assets/ con sips (2026-07-07)
+### iOS: el mic queda SORDO tras reproducir TTS por `<audio>` — usar AudioContext (2026-07-07)
+Síntoma: tras una respuesta hablada, el próximo dictado arranca (`onstart` y hasta
+`onaudiostart`) pero NUNCA llega `onspeechstart`/`onresult` — el mic entrega silencio
+durante toda esa sesión; se recupera solo ~15-60 s después. Causa: iOS retiene la
+sesión de audio del `<audio>` element en modo reproducción y no hay forma de soltarla
+a demanda (descargar el src con `load()` NO alcanza; refrescar getUserMedia tampoco).
+**Cura (fix #4):** reproducir el mp3 del TTS por **AudioContext** (`webAudioPlay`) y
+hacer `ctx.suspend()` al terminar y en `stopAudio()` — suspende libera la sesión al
+instante y el dictado siguiente nace con captura viva. El contexto se desbloquea en
+`primeAudio()` (dentro de un gesto, exigencia de iOS) y el `<audio>` primeado queda
+de fallback. Técnica de diagnóstico que lo destrabó: overlay de log visible en el
+teléfono (activable por query param) logueando eventos de SpeechRecognition
+(`onaudiostart/onspeechstart/onresult`) + estado del TTS con timestamps.
 Receta usada en eventos-fotos-reales, sirve para futuras fotos (con test de peso
 ≤155 KB en `test/eventos-fotos.test.js`):
 `sips --resampleWidth 1000 -s format jpeg -s formatOptions 55 "orig.jpg" --out slug.jpg`.
