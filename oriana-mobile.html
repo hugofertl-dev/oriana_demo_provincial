@@ -664,6 +664,32 @@ const EL = {
 const audioCache = {};      // texto -> objectURL (evita re-generar)
 let currentAudio = null;
 
+// iOS bloquea reproducir audio fuera de un gesto de usuario. Reusamos UN solo
+// elemento <audio> y lo "desbloqueamos" (prime) con un clip silencioso durante
+// el toque del micrófono; después speak() reproduce sobre ese mismo elemento ya
+// habilitado, aunque el audio llegue tras un await (fetch al servidor).
+let ttsAudio = null, _audioPrimed = false;
+function silentClipURL(){
+  const n=800, hdr=44, buf=new ArrayBuffer(hdr+n), dv=new DataView(buf);
+  const W=(o,s)=>{ for(let i=0;i<s.length;i++) dv.setUint8(o+i,s.charCodeAt(i)); };
+  W(0,"RIFF"); dv.setUint32(4,36+n,true); W(8,"WAVE"); W(12,"fmt ");
+  dv.setUint32(16,16,true); dv.setUint16(20,1,true); dv.setUint16(22,1,true);
+  dv.setUint32(24,8000,true); dv.setUint32(28,8000,true); dv.setUint16(32,1,true); dv.setUint16(34,8,true);
+  W(36,"data"); dv.setUint32(40,n,true);
+  for(let i=0;i<n;i++) dv.setUint8(44+i,128); // 0x80 = silencio en PCM 8-bit
+  return URL.createObjectURL(new Blob([buf],{type:"audio/wav"}));
+}
+function primeAudio(){ // llamar SIEMPRE dentro de un gesto (toque)
+  if(_audioPrimed) return;
+  try{
+    if(!ttsAudio) ttsAudio=new Audio();
+    ttsAudio.src=silentClipURL();
+    const p=ttsAudio.play();
+    if(p&&p.then){ p.then(()=>{ try{ttsAudio.pause();ttsAudio.currentTime=0;}catch(e){} _audioPrimed=true; }).catch(()=>{}); }
+    else { _audioPrimed=true; }
+  }catch(e){}
+}
+
 function updateVoicePill(){
   const p=document.getElementById("voicePill");
   if(!p) return;
@@ -731,9 +757,11 @@ async function speak(text, opts={}){
   try{
     const gen = USE_SERVER_TTS ? serverSpeak : elevenSpeak;
     const url=audioCache[clean] || await gen(clean);
-    currentAudio=new Audio(url);
-    currentAudio.play();
-    if(opts.onEnd) currentAudio.onended=opts.onEnd;
+    if(!ttsAudio) ttsAudio=new Audio();
+    ttsAudio.onended=opts.onEnd||null;
+    ttsAudio.src=url;
+    currentAudio=ttsAudio;
+    await ttsAudio.play();   // si iOS lo bloquea (no primeado), rechaza -> catch -> voz navegador
   }catch(err){
     console.warn("ElevenLabs falló, uso voz del navegador:", err.message);
     if(opts.onError) opts.onError(err);
@@ -1319,6 +1347,7 @@ function renderMicPanel(state){
 }
 
 async function activateMic(){
+  primeAudio();   // este toque también sirve para desbloquear el audio de iOS
   const note=document.getElementById("micNote");
   note.textContent="Pidiendo permiso…"; note.className="modal-note";
   try{
@@ -1370,6 +1399,7 @@ function setupMic(btnId, targetInput, onFinal, composerId){
   }
 
   btn.onclick=async()=>{
+    primeAudio();   // desbloquea el audio de iOS mientras esto es un gesto de usuario
     if(listening){ if(rec) rec.stop(); return; }
     const st=await micPermissionState();
     if(st==="granted"){ startDictation(); return; }
