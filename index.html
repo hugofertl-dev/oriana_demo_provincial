@@ -1211,15 +1211,36 @@ async function llmHandle(text){
   t.className="msg bot typing";
   t.innerHTML=`<div class="who">O</div><div class="bubble"><span></span><span></span><span></span></div>`;
   chatlog.appendChild(t); scrollChat();
-  try{
+  // Un intento contra /api/chat: devuelve el JSON válido o tira Error("HTTP <status>")
+  // (o el error de aborto de fetchTimeout si se colgó la red).
+  const intento=async ()=>{
     const res=await fetchTimeout("/api/chat",{
       method:"POST", headers:{"Content-Type":"application/json"},
       body:JSON.stringify({ messages:llmHistory, context:llmContext() })
-    }, 15000);   // 4G mala: sin esto el fetch cuelga minutos con typing infinito
+    }, 18000);   // 4G mala: sin esto el fetch cuelga minutos con typing infinito
     if(!res.ok) throw new Error("HTTP "+res.status);
     const out=await res.json();
-    if(epoch!==llmEpoch){ t.remove(); return true; }   // la conversación se reseteó: respuesta vieja, afuera
     if(typeof out.reply!=="string" || !out.reply.trim()) throw new Error("respuesta sin reply");
+    return out;
+  };
+  try{
+    let out;
+    try{
+      out=await intento();
+    }catch(err1){
+      if(epoch!==llmEpoch){ t.remove(); return true; }   // reset mientras volaba: descartar
+      // Bache transitorio (timeout/red sin status, o 5xx del server) → UN reintento
+      // silencioso con el typing todavía visible. 429/529 (saturado) y 4xx NO se
+      // reintentan: caen al catch de abajo (aviso "muchas consultas" o transitorio).
+      const st=(err1.message.match(/HTTP (\d+)/)||[])[1];
+      const saturado = st==="429" || st==="529";
+      const reintentable = !saturado && (st ? Number(st)>=500 : true);
+      if(!reintentable) throw err1;
+      await new Promise(r=>setTimeout(r, 600));           // pequeño respiro antes del 2º intento
+      if(epoch!==llmEpoch){ t.remove(); return true; }
+      out=await intento();                                // 2º y último; si falla, cae al catch
+    }
+    if(epoch!==llmEpoch){ t.remove(); return true; }   // la conversación se reseteó: respuesta vieja, afuera
     t.remove();
     llmFailCount=0;   // respondió bien: reseteamos el contador de fallos
     llmHistory.push({role:"assistant", content:out.reply});

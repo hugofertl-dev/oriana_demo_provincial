@@ -124,10 +124,11 @@ exports.handler = async (event) => {
     return json(400, { error: "La conversación debe empezar con un mensaje de la usuaria" });
   }
 
-  // Netlify corta la función a los ~10-26 s: los defaults del SDK (timeout 10 min,
+  // Netlify corta la función a los ~10 s: los defaults del SDK (timeout 10 min,
   // 2 retries) harían que el cliente nunca vea la respuesta. Un intento corto y afuera.
-  // 9 s = lo máximo que se puede estirar dejando ~1 s para devolver el error limpio.
-  const client = new Anthropic({ apiKey: key, timeout: 9000, maxRetries: 0 });
+  // 9,5 s = casi el techo, dejando ~0,5 s para devolver el error limpio. Más que esto
+  // lo corta Netlify (para dar más aire al modelo haría falta subir el plan/función).
+  const client = new Anthropic({ apiKey: key, timeout: 9500, maxRetries: 0 });
   try {
     const response = await client.messages.create({
       model: MODEL,
