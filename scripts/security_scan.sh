@@ -14,13 +14,14 @@
 # Si una herramienta NO está instalada → avisa y SKIP (no rompe el script).
 #
 # ── CONFIGURACIÓN POR PROYECTO ──────────────────────────────────────────────
-SECRETS_CMD="gitleaks git --staged --no-banner --redact"   # pre-commit; full usa --no-git
+SECRETS_CMD="gitleaks dir . --config .gitleaks.toml --no-banner --redact"   # escanea el working tree (ver .gitleaks.toml)
 CVE_CMD="osv-scanner scan -r ."                            # CVEs de dependencias
 SAST_CMD="semgrep scan --config p/owasp-top-ten --error -q"   # Node/JS; SKIP si semgrep no está instalado
                           # (proyecto JS: si algún día se agrega backend, este es el gate SAST)
 # ────────────────────────────────────────────────────────────────────────────
 
 set -u
+cd "$(dirname "${BASH_SOURCE[0]}")/.."   # correr desde la raíz: `.` y .gitleaks.toml resuelven bien
 MODE="${1:-secrets}"
 HARD_FAIL=0
 
@@ -28,12 +29,15 @@ have() { command -v "$1" >/dev/null 2>&1; }
 hdr()  { echo ""; echo "── security_scan[$MODE] :: $1"; }
 
 # 1) SECRETS (siempre; bloqueante)
-hdr "secrets (gitleaks)"
+hdr "secrets (gitleaks dir sobre el working tree)"
 if have gitleaks; then
-  if [ "$MODE" = "full" ]; then
-    gitleaks git --no-banner --redact && echo "   ✅ sin secrets" || { echo "   ❌ SECRETS detectados"; HARD_FAIL=1; }
+  # `gitleaks dir` escanea los ARCHIVOS actuales (no solo staged/historial): así el gate
+  # ve el código aún sin commitear (caso del feature-close) y NO da falso verde con todo
+  # commiteado. El .env local (con las keys reales) queda allowlisteado en .gitleaks.toml.
+  if gitleaks dir . --config .gitleaks.toml --no-banner --redact; then
+    echo "   ✅ sin secrets en el working tree"
   else
-    gitleaks git --staged --no-banner --redact && echo "   ✅ sin secrets en staged" || { echo "   ❌ SECRETS en staged"; HARD_FAIL=1; }
+    echo "   ❌ SECRETS detectados en el working tree"; HARD_FAIL=1
   fi
 else
   echo "   ⚠️ gitleaks no instalado — SKIP (instalar: brew/apt install gitleaks)"

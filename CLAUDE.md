@@ -34,9 +34,11 @@ Clasificar todo pedido en UNA línea y decirla al usuario (puede corregirla):
    de cambio.
 3. **Tests reales.** Un test que nunca estuvo rojo no existe. Para fixes corre
    `scripts/sabotage_check.sh`. Prohibido: asserts triviales, tests que
-   verifican mocks, tests que duplican la implementación. (Ojo: hoy no hay suite
-   de tests automatizada; un Fix con test requiere montar el andamiaje mínimo o
-   acordar verificación manual con el usuario.)
+   verifican mocks, tests que duplican la implementación. Hay suite jsdom
+   automatizada cableada en `scripts/verify.sh` (los `test/*.test.js` cargan
+   `index.html` con jsdom; ver `docs/lessons.md`); un Fix nuevo suma su test
+   rojo-primero ahí. Si algo no es testeable en jsdom, acordar verificación
+   manual con el usuario.
 4. **Verificación antes de declarar éxito.** Nada está "listo" sin
    `verify.sh` verde del nivel correspondiente (el hook Stop lo exige igual).
 5. **UI: nunca desde página en blanco.** Apartado nuevo = clonar el apartado de

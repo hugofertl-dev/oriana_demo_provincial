@@ -7,7 +7,7 @@
 > **cualquiera, desde cualquier dispositivo y red, la pruebe sin que se caiga
 > ni te deje ciego**.
 >
-> **Estado: EN CURSO (Fases 1-4 con código cerrado; Fase 5 pendiente).** Orden recomendado: 1 → 2 → 3 → 4 → 5.
+> **Estado: EN CURSO (Fases 1-5 con código cerrado; queda el ítem 18 como Feature aparte).** Orden recomendado: 1 → 2 → 3 → 4 → 5.
 > Fase 1 ítems 1-2 (rate-limit + CORS) IMPLEMENTADOS y cerrados (feature `rate-limit-apis`,
 > commit f0529c4, validado en deploy). Ítems 3-4 (spending limits + concurrencia) son acción
 > manual/operativa del usuario, sin código.
@@ -141,26 +141,40 @@ si los fallos llegan.
 
 ## FASE 5 — Endurecimiento y deuda del harness
 
-14. **Headers de seguridad en `netlify.toml`** (señalado por la auditoría).
-    - `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`
-      (permitir solo `microphone=(self), geolocation=(self)`), HSTS.
-    - CSP: OJO — la app es 100% JS/CSS inline; una CSP estricta requiere
-      nonces o quedarse en `'unsafe-inline'` (que igual suma contra inyección
-      de recursos externos). Definir el nivel alcanzable sin reescribir la app.
+> **FASE 5 casi completa (2026-07-07).** Ítems 14 (headers+CSP), 15 (gate de secrets) y 17
+> (CLAUDE.md) RESUELTOS. Ítem 16 investigado y NO aplicado (forzarlo empeora; dev-only, 0 prod).
+> Ítem 18 (pre-generar audios) queda como Feature aparte, retomable cuando el usuario quiera.
 
-15. **gitleaks del `security_scan` corre sobre staging VACÍO** (0 bytes con todo
-    commiteado → no escanea nada). Gate que no gatea; arreglar el script.
+14. **✅ RESUELTO (2026-07-07) — headers de seguridad + CSP en `netlify.toml`.**
+    Bloque `[[headers]] for="/*"`: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
+    `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`
+    (`microphone=(self), geolocation=(self), camera=()`), HSTS, y CSP con `'unsafe-inline'`
+    (la app es 100% inline) que BLOQUEA recursos externos/enmarcado y acota `connect-src`
+    a same-origin (`/api/*`). `media-src` permite `blob:`/`data:` (TTS + primeAudio). Sin
+    `'unsafe-eval'` (no hay eval en runtime). Verificado headless: 0 `securitypolicyviolation`
+    al cargar y ejercitar primeAudio/modal/navegación. TOML válido.
 
-16. **CVEs menores en deps dev** (`@opentelemetry/core`, `esbuild` — no llegan a
-    producción). `npm update` cuando toque; verificar que los tests jsdom sigan verdes.
+15. **✅ RESUELTO (2026-07-07) — el gate de secrets ahora gatea.** `scripts/security_scan.sh`
+    pasa a `gitleaks dir . --config .gitleaks.toml` (escanea el WORKING TREE, no `--staged`/
+    historial → ve el código sin commitear y no da falso verde con todo commiteado). El `.env`
+    local (keys reales, gitignoreado) queda allowlisteado en `.gitleaks.toml` nuevo. Validado:
+    detecta un secreto plantado (exit≠0) e ignora el `.env`. El script hace `cd` a la raíz.
 
-17. **CLAUDE.md desactualizado**: dice "hoy no hay suite de tests automatizada";
-    hay 10 tests jsdom cableados en `scripts/verify.sh`. Corregir la nota.
+16. **⚠️ INVESTIGADO, NO aplicado (2026-07-07) — dev-only, forzarlo empeora.** `npm audit`:
+    16 vulns TODAS en `netlify-cli` y transitivos (`@opentelemetry/core`, `esbuild`, `@netlify/*`);
+    **0 en producción** (`npm audit --omit=dev`). `npm audit fix` sin `--force` no arregla nada;
+    `--force` bumpea `netlify-cli` a un major y **EMPEORA a 46 vulns (16 high, 4 critical)** →
+    revertido. Decisión: dejarlas (0 impacto en prod). Retomar solo si `netlify-cli` saca una
+    versión sana, o con `overrides` puntuales si algún día molesta. osv-scanner las marca informativas.
 
-18. **Retomable si la factura de ElevenLabs pesa** (ítem 23 viejo, descartado
-    con razón): pre-generar como assets estáticos los audios fijos (saludo,
-    frases repetidas) en vez de pedirlos al TTS cada vez. El audioCache actual
-    (30 entradas) ya amortigua dentro de una sesión; esto amortigua ENTRE usuarios.
+17. **✅ RESUELTO (2026-07-07) — CLAUDE.md corregido.** La regla 3 (Tests reales) ya no dice
+    "hoy no hay suite de tests"; apunta a la suite jsdom cableada en `scripts/verify.sh`.
+
+18. **⏭️ A HACER COMO FEATURE APARTE — pre-generar audios fijos.** Cambia comportamiento en
+    runtime + suma assets + necesita la KEY de ElevenLabs para generarlos (secreto que maneja
+    el usuario) + decidir qué frases son "fijas" → es nivel Feature (entrevista `feature-start`),
+    no un Ajuste de esta tanda. El audioCache (30) ya amortigua dentro de una sesión; esto
+    amortiguaría ENTRE usuarios. Retomable cuando el usuario quiera arrancarlo.
 
 ---
 

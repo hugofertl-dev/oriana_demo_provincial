@@ -8,6 +8,24 @@
   command = "bash scripts/stage_publish.sh"
   functions = "netlify/functions"
 
+# Headers de seguridad en TODA respuesta (FASE 5, ítem 14). La app es 100% JS/CSS
+# inline y sin recursos externos, así que la CSP usa 'unsafe-inline' (necesario para
+# que el inline corra) pero BLOQUEA todo lo de afuera: scripts/estilos de otros dominios,
+# enmarcado (frame-ancestors), y acota connect-src a mismo-origen (/api/* es same-origin).
+# media-src permite blob: y data: (el TTS reproduce audio vía blob URLs; primeAudio usa un
+# WAV data:). No hace falta 'unsafe-eval' (no hay eval/new Function en runtime).
+# NOTA: el camino directo a api.elevenlabs.io (elevenSpeak) es solo local/dev vía proxy;
+# en producción se usa /api/tts (same-origin), por eso connect-src no lo incluye.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "microphone=(self), geolocation=(self), camera=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; media-src 'self' blob: data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+
 # Las fotos (~fijas) se cachean fuerte: sin esto los 6 JPEG se revalidan en cada
 # visita. Los HTML quedan con max-age=0 (default) a propósito: se actualizan al toque.
 [[headers]]

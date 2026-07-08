@@ -1,0 +1,14 @@
+# Config de gitleaks para el gate de secrets (scripts/security_scan.sh).
+# Extiende las reglas por defecto y allowlista archivos locales que NO se commitean
+# (gitignoreados): el .env con las API keys reales y el build en dist/. Sin esto,
+# `gitleaks dir` los marca como leaks (falsos positivos: nunca llegan al repo).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Archivos locales gitignoreados (no llegan al repo)"
+paths = [
+  '''^\.env$''',
+  '''^\.env\..*''',
+  '''^dist/''',
+]
