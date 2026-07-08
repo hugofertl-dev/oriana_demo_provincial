@@ -66,7 +66,11 @@ const UA = {
   chromeAnd:  "Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36",
   firefox:    "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0",
   safariIOS:  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
-  chromeIOS:  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/122.0.0.0 Mobile/15E148 Safari/604.1",
+  // UA REAL capturado en el iPhone del usuario (Chrome iOS abierto desde WhatsApp) — el caso del bug.
+  chromeIOS:  "Mozilla/5.0 (iPhone; CPU iPhone OS 26_5_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/150.0.7871.51 Mobile/15E148 Safari/604.1",
+  firefoxIOS: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/124.0 Mobile/15E148 Safari/604.1",
+  edgeIOS:    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 EdgiOS/122.0 Mobile/15E148 Safari/604.1",
+  iosInApp:   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
 };
 
 (async () => {
@@ -91,6 +95,44 @@ const UA = {
     window.close();
   }
   if (firstErr) { console.log("     JS error al cargar: " + (firstErr.message || firstErr)); }
+
+  console.log("── fase3-compat :: iOS sin Safari → guía a Safari (Chrome/Firefox/Edge iOS, in-app WKWebView)");
+  // En iOS el micrófono/dictado solo anda en Safari; el resto de los navegadores iOS (que igual
+  // usan WebKit) no. Detectar iOS-que-no-es-Safari para guiar a Safari en vez de fallar.
+  const iosCases = [
+    ["Chrome iOS (CriOS)",  UA.chromeIOS,  true],
+    ["Firefox iOS (FxiOS)", UA.firefoxIOS, true],
+    ["Edge iOS (EdgiOS)",   UA.edgeIOS,    true],
+    ["in-app WKWebView iOS",UA.iosInApp,   true],
+    ["Safari iOS real",     UA.safariIOS,  false],
+    ["Chrome Android",      UA.chromeAnd,  false],
+    ["Firefox desktop",     UA.firefox,    false],
+  ];
+  for (const [nombre, ua, esperado] of iosCases) {
+    const { window } = mount(ua);
+    const got = typeof window.iosNeedsSafari === "function" ? window.iosNeedsSafari() : "(sin iosNeedsSafari)";
+    check(`iosNeedsSafari(${nombre}) === ${esperado}`, got === esperado);
+    window.close();
+  }
+
+  console.log("── fase3-compat :: modal iOS-Safari (renderMicPanel) + tocar el micro en Chrome iOS");
+  {
+    const { window: wi } = mount(UA.chromeIOS);
+    wi.renderMicPanel("ios-safari");
+    const leadI = wi.document.getElementById("micLead").textContent;
+    check("el lead del estado ios-safari nombra Safari", /Safari/i.test(leadI));
+    check("el botón 'Activar micrófono' queda oculto en ios-safari", wi.document.getElementById("micActivate").style.display === "none");
+    // Behavioral: en Chrome iOS, tocar el micro abre la guía (no intenta el dictado ni pide permiso)
+    wi.document.getElementById("micModal").classList.remove("open");
+    let gumCalled = false;
+    if (wi.navigator.mediaDevices) wi.navigator.mediaDevices.getUserMedia = () => { gumCalled = true; return Promise.reject(new Error("no")); };
+    wi.document.getElementById("micBtn").click();
+    await sleep(60);
+    check("tocar el micro en Chrome iOS abre el modal de guía", wi.document.getElementById("micModal").classList.contains("open"));
+    check("el modal muestra la guía a Safari", /Safari/i.test(wi.document.getElementById("micLead").textContent));
+    check("NO se intentó getUserMedia en Chrome iOS", gumCalled === false);
+    wi.close();
+  }
 
   console.log("── fase3-compat :: modal WebView (renderMicPanel) (ítem 8)");
   const { window: w } = mount(UA.whatsapp);

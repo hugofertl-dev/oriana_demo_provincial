@@ -1858,11 +1858,28 @@ function isWebView(){
   const ua = (navigator.userAgent || "");
   return /WhatsApp|Instagram|FBAN|FBAV|FB_IAB/i.test(ua) || /;\s*wv[);]/i.test(ua);
 }
+// En iOS el micrófono/dictado SOLO funciona en Safari: Chrome (CriOS), Firefox (FxiOS),
+// Edge (EdgiOS), etc. y los WKWebView embebidos usan WebKit pero Apple les bloquea la voz.
+// Caso real: WhatsApp abre el link en el navegador por defecto (Chrome iOS) y el mic "no anda".
+// Safari real = tiene "Version/" + "Safari" y NINGÚN token de otro navegador iOS.
+function iosNeedsSafari(){
+  const ua = (navigator.userAgent || "");
+  if(!/iPhone|iPad|iPod/i.test(ua)) return false;   // solo iOS
+  const realSafari = /Version\/\d/i.test(ua) && /Safari/i.test(ua)
+    && !/CriOS|FxiOS|EdgiOS|OPiOS|OPT\/|mercury|GSA\/|DuckDuckGo|YaBrowser|Brave/i.test(ua);
+  return !realSafari;
+}
 const WEBVIEW_STEPS_HTML =
   '<ol class="mic-steps">'+
   '<li>Tocá el menú <b>⋯</b> (arriba a la derecha).</li>'+
   '<li>Elegí <b>Abrir en el navegador</b> (Safari o Chrome).</li>'+
   '<li>Ahí sí vas a poder hablarle a ORIANA por voz.</li>'+
+  '</ol>';
+const IOS_SAFARI_STEPS_HTML =
+  '<ol class="mic-steps">'+
+  '<li>Tocá el menú del navegador y, si aparece, elegí <b>Abrir en Safari</b>.</li>'+
+  '<li>Si no, copiá la dirección de arriba y pegala en <b>Safari</b>.</li>'+
+  '<li>En Safari vas a poder hablarle a ORIANA por voz.</li>'+
   '</ol>';
 // Navegador sin dictado (ej. Firefox de escritorio): antes se SIMULABA el dictado
 // y se auto-enviaba una frase demo — parecía un bug. Ahora se avisa honestamente
@@ -1880,6 +1897,7 @@ async function micPermissionState(){
 
 function openMicPanel(onGranted){
   _micOnGranted = (typeof onGranted==="function") ? onGranted : null;
+  if(iosNeedsSafari()){ renderMicPanel("ios-safari"); document.getElementById("micModal").classList.add("open"); return; }
   if(isWebView()){ renderMicPanel("webview"); document.getElementById("micModal").classList.add("open"); return; }
   micPermissionState().then(st=>{ renderMicPanel(st); document.getElementById("micModal").classList.add("open"); });
 }
@@ -1892,7 +1910,12 @@ function renderMicPanel(state){
   const cancel=document.getElementById("micCancel");
   const note=document.getElementById("micNote");
   note.textContent=""; note.className="modal-note"; steps.innerHTML="";
-  if(state==="webview"){
+  if(state==="ios-safari"){
+    lead.textContent="En el iPhone, el micrófono solo funciona en Safari. Estás en otro navegador (Chrome/Firefox), por eso la voz no anda. Para hablarle a ORIANA por voz, abrí este link en Safari:";
+    steps.innerHTML=IOS_SAFARI_STEPS_HTML;
+    act.style.display="none"; cancel.textContent="Entendido";
+    note.textContent="El chat por texto anda perfecto acá 💬"; note.className="modal-note";
+  } else if(state==="webview"){
     lead.textContent="Estás en el navegador de WhatsApp/Instagram, donde el micrófono no funciona. Para hablarle a ORIANA por voz, abrila en Safari o Chrome:";
     steps.innerHTML=WEBVIEW_STEPS_HTML;
     act.style.display="none"; cancel.textContent="Entendido";
@@ -2086,7 +2109,8 @@ function setupMic(btnId, targetInput, onFinal, composerId){
   btn.onclick=async()=>{
     primeAudio();   // desbloquea el audio de iOS mientras esto es un gesto de usuario
     if(listening){ if(rec) rec.stop(); return; }
-    if(isWebView()){ openMicPanel(); return; }   // WhatsApp/IG: modal "abrí en Safari/Chrome", sin intentar dictado
+    if(iosNeedsSafari()){ openMicPanel(); return; }   // iOS Chrome/Firefox/WebView: la voz solo anda en Safari
+    if(isWebView()){ openMicPanel(); return; }   // WhatsApp/IG (Android in-app): modal "abrí en el navegador", sin intentar dictado
     if(!rec){ targetInput.placeholder=MSG_SIN_DICTADO; return; }   // Firefox: aviso honesto, sin pedir permiso al pedo
     const st=await micPermissionState();
     if(st==="granted"){ startDictation(); return; }
@@ -2349,6 +2373,7 @@ if(/[?&]ua\b/.test(location.search)){
     const info={
       ua,
       isWebView:isWebView(),
+      iosNeedsSafari:iosNeedsSafari(),
       tokens:{ WhatsApp:/WhatsApp/i.test(ua), Instagram:/Instagram/i.test(ua), FB:/FBAN|FBAV|FB_IAB/i.test(ua), androidWv:/;\s*wv[);]/i.test(ua) },
       iOS:/iPhone|iPad|iPod/i.test(ua),
       hasSafariToken:/Safari/i.test(ua),
