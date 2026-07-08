@@ -59,6 +59,9 @@ ni límite de volumen. Compartir la URL ampliamente sin esto es regalar la API k
 > histórico consultable en Upstash. Ítem 7 HECHO: `scripts/smoke.sh <url> [--light]`
 > (home + POST reales a /api/chat y /api/tts; `--light` sin costo). Validado contra el
 > deploy real (verde).
+> **E2E verificado (2026-07-08):** `LOG_READ_TOKEN` cargado en Netlify (GET con token → 200,
+> sin/erróneo → 401), Upstash OK, y pipeline de escritura probado (POST → 204 → aparece en el
+> GET → entrada de prueba borrada con LPOP). Telemetría 100% operativa.
 
 Hoy no hay NINGÚN error tracking: si un tester tiene un crash en su dispositivo,
 la única forma de saberlo es que lo cuente. "Probar desde todos lados" solo sirve
