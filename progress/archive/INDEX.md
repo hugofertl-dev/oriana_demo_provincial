@@ -18,3 +18,4 @@
 | telemetria-log | Captura global de errores del cliente → /api/log (persistido en Upstash, GET con token por header) (FASE 2 telemetría) | 2026-07-07 | (pendiente) |
 | compat-multinavegador | Compatibilidad multi-navegador: banner WebView WhatsApp/IG + Firefox honesto (sin dictado simulado) + matriz de prueba (FASE 3) | 2026-07-07 | (pendiente) |
 | audios-fijos | Pre-generar audios fijos del acompañamiento (14 frases) — MP3 en assets/audio + hash/manifest, fallback a /api/tts (FASE 5 ítem 18) | 2026-07-08 | f9a0828 |
+| fechas-dinamicas | Eventos y turnos siempre relativos a hoy (motor de fechas, nunca atrasados) — persistencia v:2 | 2026-07-08 | c30d8c6 |

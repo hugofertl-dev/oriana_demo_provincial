@@ -12,24 +12,5 @@
     "regla_wip": "Antes de arrancar trabajo nuevo: si hay in_progress/paused DEL DEV ACTUAL (campo owner), pedir decisión al usuario (WIP-gate). Las de otros devs no bloquean.",
     "regla_cierre": "Al cerrar como done la entrada SE ELIMINA de este archivo y queda en progress/archive/<id>/."
   },
-  "features": [
-    {
-      "id": "fechas-dinamicas",
-      "titulo": "Fechas dinámicas: eventos y turnos siempre relativos a hoy (nunca atrasados)",
-      "status": "in_progress",
-      "criterios": [
-        "CUANDO se carga la demo, EL SISTEMA DEBE re-fechar los 6 eventos desde HOY preservando su espaciado relativo (ninguno con fecha < hoy).",
-        "CUANDO se carga la demo, turnos_agenda DEBE caer en hoy/mañana/pasado (5 slots 2/2/1) con el día de semana correcto.",
-        "CUANDO se carga la demo, el turno confirmado semilla y el de acompañamiento DEBEN tener fecha futura, nunca pasada.",
-        "Los turnos reservados por el usuario (persistidos) DEBEN mantenerse tal cual aunque queden en el pasado (no se descartan).",
-        "getTurno (matcheo por día) y speakable (voz) DEBEN funcionar para cualquier mes (hoy asumen /07).",
-        "Las fechas se recalculan relativas a la fecha actual en cada carga (nunca fijas)."
-      ],
-      "verification": "node test/fechas-dinamicas.test.js && node test/speakable.test.js && scripts/verify.sh full",
-      "archivos": ["index.html", "oriana-mobile.html", "test/fechas-dinamicas.test.js", "scripts/verify.sh"],
-      "blockedBy": [],
-      "owner": "Hugo",
-      "creada": "2026-07-08"
-    }
-  ]
+  "features": []
 }

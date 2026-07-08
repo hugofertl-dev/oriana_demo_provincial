@@ -273,3 +273,16 @@ Diseño: `audioKey(s)` = hash FNV-1a de `speakable(text).slice(0,600)`; `assets/
   (nunca suena el audio viejo). Por eso NO hace falta acoplar perfectamente el generador con el runtime.
 - **Las 5 frases de KB** se derivan de `ninosKB` con `kbSpoken()` (misma función en runtime y generador),
   las 9 de flujo viven en `scripts/audios-fijos.json` (guard de drift en test/audios-fijos.test.js).
+
+### Las fechas de la demo son DINÁMICAS (relativas a hoy) — no hardcodear (2026-07-08)
+Eventos y turnos se re-fechan en cada carga con el motor de fechas (index.html, antes de `const DB`):
+`mkTurnosAgenda(base)` (hoy/+1/+2), `mkSeedTurno(base)` (turno confirmado +2, con `seed:true`),
+`shiftEventos(EVENTOS, base)` (re-fecha preservando el espaciado; el más temprano = HOY). Todo con base
+default hoy e inyectable para tests. NO volver a poner fechas fijas: quedan atrasadas.
+- Para cambiar el spread de eventos: editá las fechas ORIGINALES en `EVENTOS` (los offsets relativos se
+  derivan de ahí). Para los horarios de turnos: en `mkTurnosAgenda`/`mkSeedTurno`.
+- `matchFecha` y `speakable` son genéricos por mes (no asumir `/07`).
+- **OJO persistencia:** el turno semilla lleva `seed:true` y se regenera en cada carga (no lo pisa lo
+  guardado); las reservas del usuario (sin flag) se conservan. Si cambiás el shape del DB persistido,
+  subí la versión (`v` en saveDemoData + el guard `v!==N`) para que lo viejo se descarte solo — si no,
+  datos viejos arrastran inconsistencias (p.ej. turno semilla duplicado). Repro: test/estabilidad-fase5.
