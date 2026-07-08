@@ -259,3 +259,17 @@ Al detectarlo, se muestra el modal `ios-safari` ("el mic solo anda en Safari, ab
 en vez de intentar el dictado (que fallaba con el panel de permiso denegado y pasos de Safari
 inaplicables). Repro con el UA real en test/fase3-compat.test.js. Distinto de `isWebView()`, que
 es para los in-app de Android (`; wv`, WhatsApp/IG/FB con token en el UA).
+
+### Audios fijos pre-generados: hash + manifest + fallback (2026-07-08)
+El flujo de acompañamiento (Línea 144/violencia) habla texto FIJO (motor de reglas, no LLM), así
+que sus MP3 se pre-generan y la app los reproduce sin pegarle a /api/tts (amortiza ENTRE usuarios).
+Diseño: `audioKey(s)` = hash FNV-1a de `speakable(text).slice(0,600)`; `assets/audio/<hash>.mp3` +
+`manifest.json` (lista de hashes); en `speak()`, si el hash está en PREGEN reproduce el asset por
+`webAudioPlay` (con `fetchTimeout`), si no o si falla cae a `/api/tts`. Claves:
+- **Regenerar:** `node scripts/gen-audios.mjs [url]` — reusa speakable/audioKey/kbSpoken/ninosKB de
+  index.html vía jsdom (ninosKB es `const` → se lee con `w.eval`, no window) y pide los MP3 al
+  `/api/tts` del DEPLOY (misma voz/modelo/settings que el cliente → idéntico, sin la key de ElevenLabs).
+- **Anti-desync:** editar un texto sin regenerar NO rompe: el hash cambia → cae a /api/tts en vivo
+  (nunca suena el audio viejo). Por eso NO hace falta acoplar perfectamente el generador con el runtime.
+- **Las 5 frases de KB** se derivan de `ninosKB` con `kbSpoken()` (misma función en runtime y generador),
+  las 9 de flujo viven en `scripts/audios-fijos.json` (guard de drift en test/audios-fijos.test.js).

@@ -7,7 +7,9 @@
 > **cualquiera, desde cualquier dispositivo y red, la pruebe sin que se caiga
 > ni te deje ciego**.
 >
-> **Estado: EN CURSO (Fases 1-5 con código cerrado; queda el ítem 18 como Feature aparte).** Orden recomendado: 1 → 2 → 3 → 4 → 5.
+> **Estado: CÓDIGO COMPLETO (las 5 fases cerradas, ítem 18 incluido, 2026-07-08).** Quedan solo
+> acciones manuales/operativas del usuario: matriz de navegadores en dispositivos (ítem 10) y
+> spending limits/concurrencia (ítems 3-4). Orden recomendado del roadmap fue: 1 → 2 → 3 → 4 → 5.
 > Fase 1 ítems 1-2 (rate-limit + CORS) IMPLEMENTADOS y cerrados (feature `rate-limit-apis`,
 > commit f0529c4, validado en deploy). Ítems 3-4 (spending limits + concurrencia) son acción
 > manual/operativa del usuario, sin código.
@@ -144,9 +146,9 @@ si los fallos llegan.
 
 ## FASE 5 — Endurecimiento y deuda del harness
 
-> **FASE 5 casi completa (2026-07-07).** Ítems 14 (headers+CSP), 15 (gate de secrets) y 17
-> (CLAUDE.md) RESUELTOS. Ítem 16 investigado y NO aplicado (forzarlo empeora; dev-only, 0 prod).
-> Ítem 18 (pre-generar audios) queda como Feature aparte, retomable cuando el usuario quiera.
+> **FASE 5 COMPLETA (2026-07-08).** Ítems 14 (headers+CSP), 15 (gate de secrets), 17 (CLAUDE.md)
+> y 18 (audios fijos pre-generados) RESUELTOS. Ítem 16 investigado y NO aplicado (forzarlo empeora;
+> dev-only, 0 prod). **Con esto las 5 fases del plan quedan con código cerrado.**
 
 14. **✅ RESUELTO (2026-07-07) — headers de seguridad + CSP en `netlify.toml`.**
     Bloque `[[headers]] for="/*"`: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
@@ -173,11 +175,12 @@ si los fallos llegan.
 17. **✅ RESUELTO (2026-07-07) — CLAUDE.md corregido.** La regla 3 (Tests reales) ya no dice
     "hoy no hay suite de tests"; apunta a la suite jsdom cableada en `scripts/verify.sh`.
 
-18. **⏭️ A HACER COMO FEATURE APARTE — pre-generar audios fijos.** Cambia comportamiento en
-    runtime + suma assets + necesita la KEY de ElevenLabs para generarlos (secreto que maneja
-    el usuario) + decidir qué frases son "fijas" → es nivel Feature (entrevista `feature-start`),
-    no un Ajuste de esta tanda. El audioCache (30) ya amortigua dentro de una sesión; esto
-    amortiguaría ENTRE usuarios. Retomable cuando el usuario quiera arrancarlo.
+18. **✅ RESUELTO (2026-07-08) — audios fijos pre-generados** (feature `audios-fijos`, commit f9a0828,
+    archivada). Las 14 frases del acompañamiento (Línea 144/violencia; motor de reglas, no LLM) tienen
+    su MP3 en `assets/audio/<hash>.mp3` + `manifest.json`; en `speak()`, si el hash está en el manifest
+    reproduce el asset (webAudioPlay, con fetchTimeout), si no o si falla cae a `/api/tts` en vivo.
+    Generados vía `scripts/gen-audios.mjs` pidiendo al `/api/tts` del deploy (sin manejar la key).
+    El chat principal (LLM) sigue en vivo — no es pre-generable. Verificado en el celular del usuario.
 
 ---
 

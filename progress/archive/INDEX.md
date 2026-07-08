@@ -17,3 +17,4 @@
 | rate-limit-apis | Rate-limit por IP (Upstash) en /api/chat y /api/tts + CORS unificado a ALLOWED_ORIGIN (FASE 1 blindaje de APIs) | 2026-07-07 | f0529c4 |
 | telemetria-log | Captura global de errores del cliente → /api/log (persistido en Upstash, GET con token por header) (FASE 2 telemetría) | 2026-07-07 | (pendiente) |
 | compat-multinavegador | Compatibilidad multi-navegador: banner WebView WhatsApp/IG + Firefox honesto (sin dictado simulado) + matriz de prueba (FASE 3) | 2026-07-07 | (pendiente) |
+| audios-fijos | Pre-generar audios fijos del acompañamiento (14 frases) — MP3 en assets/audio + hash/manifest, fallback a /api/tts (FASE 5 ítem 18) | 2026-07-08 | f9a0828 |
