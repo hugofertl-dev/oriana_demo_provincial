@@ -246,3 +246,16 @@ y NI llama a `_chipClick`. Moraleja: cualquier lógica que deba correr en TODOS 
 (ej. `cancelPending()` de los mics para no dejar mensaje fantasma al tocar un chip durante el
 dictado) va en el WRAPPER, no en la función original — si va en `_chipClick` no corre en la
 pantalla de niños. Repro permanente: test/chip-durante-dictado.test.js (caso "niños visible").
+
+### iOS: el micrófono/voz SOLO funciona en Safari (no Chrome/Firefox/Edge iOS ni WebViews) (2026-07-07)
+En iPhone/iPad todos los navegadores usan WebKit, pero Apple habilita getUserMedia y el
+dictado SOLO en Safari.app. Chrome iOS (UA con `CriOS`), Firefox iOS (`FxiOS`), Edge (`EdgiOS`)
+y los WKWebView embebidos NO pueden usar el micrófono. Trampa que costó un deploy de debug:
+**WhatsApp en iOS abre los links en el navegador POR DEFECTO del usuario** (si es Chrome, cae
+en Chrome iOS), no en un WebView propio — por eso el UA venía con `CriOS` y no con `WhatsApp`.
+Detección: `iosNeedsSafari()` = iOS && no-es-Safari-real, donde Safari real = tiene `Version/` +
+`Safari` y NINGÚN token de otro navegador iOS (CriOS/FxiOS/EdgiOS/…). Chrome iOS NO trae `Version/`.
+Al detectarlo, se muestra el modal `ios-safari` ("el mic solo anda en Safari, abrí el link en Safari")
+en vez de intentar el dictado (que fallaba con el panel de permiso denegado y pasos de Safari
+inaplicables). Repro con el UA real en test/fase3-compat.test.js. Distinto de `isWebView()`, que
+es para los in-app de Android (`; wv`, WhatsApp/IG/FB con token en el UA).

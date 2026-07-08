@@ -2364,31 +2364,6 @@ const micNinos=setupMic("micBtn2", input2, (t)=>{ nbubble("Yo",esc(t)); input2.v
 window.addEventListener("load",()=>{ if("speechSynthesis" in window) speechSynthesis.getVoices(); });
 updateVoicePill();
 
-// DIAGNÓSTICO TEMPORAL (?ua): overlay con el user-agent y las señales de detección de
-// WebView, para depurar por qué el navegador embebido de WhatsApp en iOS no se detecta.
-// Invisible salvo que la URL traiga ?ua. QUITAR una vez resuelto (FASE 3, iOS WebView).
-if(/[?&]ua\b/.test(location.search)){
-  try{
-    const ua=navigator.userAgent||"";
-    const info={
-      ua,
-      isWebView:isWebView(),
-      iosNeedsSafari:iosNeedsSafari(),
-      tokens:{ WhatsApp:/WhatsApp/i.test(ua), Instagram:/Instagram/i.test(ua), FB:/FBAN|FBAV|FB_IAB/i.test(ua), androidWv:/;\s*wv[);]/i.test(ua) },
-      iOS:/iPhone|iPad|iPod/i.test(ua),
-      hasSafariToken:/Safari/i.test(ua),
-      hasVersionToken:/Version\//i.test(ua),
-      otherIOSbrowsers:/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua),
-      standalone:("standalone" in navigator)?navigator.standalone:"n/a"
-    };
-    const box=document.createElement("pre");
-    box.style.cssText="position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#111;color:#0f0;font:12px/1.4 monospace;padding:12px;border-radius:10px;white-space:pre-wrap;word-break:break-all;max-height:70vh;overflow:auto;box-shadow:0 6px 24px rgba(0,0,0,.5)";
-    box.textContent="DIAGNÓSTICO ?ua\n\n"+JSON.stringify(info,null,2);
-    box.onclick=()=>box.remove();
-    document.body.appendChild(box);
-  }catch(e){}
-}
-
 // Telemetría de errores del cliente (FASE 2): errores JS no capturados y promesas
 // rechazadas → POST a /api/log (se guarda en el server; ver netlify/functions/log.js).
 // SIN datos del ciudadano: solo diagnóstico técnico. Anti-loop en dos capas: (1) tope
