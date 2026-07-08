@@ -569,6 +569,42 @@
 
 <script>
 /* ============================================================
+   MOTOR DE FECHAS DE LA DEMO (fechas-dinamicas)
+   Todo relativo a HOY para que eventos y turnos NUNCA queden atrasados.
+   Cada función acepta una fecha base (default hoy) para poder testearla con
+   una fecha fija. Formato turno "Mié 8/07 · 09:30" (día de semana + d/mm),
+   evento "6/7/2026" (d/m/aaaa). speakable() ya lee cualquier mes.
+   ============================================================ */
+const _WKD=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];   // getDay(): 0=Dom … 6=Sáb (abrevs que entiende speakable)
+function demoBase(){ return new Date(); }
+function addDays(d,n){ const r=new Date(d.getFullYear(),d.getMonth(),d.getDate()); r.setDate(r.getDate()+n); return r; }
+function fmtTurno(d,hora){ return `${_WKD[d.getDay()]} ${d.getDate()}/${String(d.getMonth()+1).padStart(2,"0")} · ${hora}`; }
+function fmtEvento(d){ return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`; }
+// Turnos disponibles: hoy(+0), mañana(+1), pasado(+2) — 2/2/1 slots, mismos horarios de siempre.
+function mkTurnosAgenda(base=demoBase()){
+  return [ fmtTurno(addDays(base,0),"09:30"), fmtTurno(addDays(base,0),"11:00"),
+           fmtTurno(addDays(base,1),"08:15"), fmtTurno(addDays(base,1),"15:40"),
+           fmtTurno(addDays(base,2),"10:20") ];
+}
+// Turno confirmado SEMILLA (seed:true → se regenera en cada carga; ver merge de persistencia).
+function mkSeedTurno(base=demoBase()){
+  return { hospital:"Hospital Escuela de Agudos Dr. Ramón Madariaga", esp:"Clínica médica",
+           cuando:fmtTurno(addDays(base,2),"10:20"), estado:"Confirmado", seed:true };
+}
+// Re-fecha los eventos preservando su espaciado relativo: el más temprano pasa a ser HOY.
+// Los offsets originales se calculan UNA vez (en la 1ª llamada, con las fechas pristinas) y
+// quedan en la función — no se ensucian los objetos de EVENTOS, y re-correr es idempotente.
+function shiftEventos(eventos, base=demoBase()){
+  if(!shiftEventos._off){
+    const parse=s=>{ const p=String(s).split("/").map(Number); return new Date(p[2],p[1]-1,p[0]).getTime(); };
+    const ts=eventos.map(e=>parse(e.date)), min=Math.min(...ts);
+    shiftEventos._off=ts.map(t=>Math.round((t-min)/86400000));
+  }
+  eventos.forEach((e,i)=>{ e.date=fmtEvento(addDays(base, shiftEventos._off[i]||0)); });
+  return eventos;
+}
+
+/* ============================================================
    DATOS DE EJEMPLO (JSON)  — Provincia genérica
    ============================================================ */
 const DB = {
@@ -610,10 +646,8 @@ const DB = {
     {nombre:"Comisaría Seccional 16ta — Itaembé Miní", dir:"Itaembé Miní, Posadas", xy:[-6.8,-0.9], ll:[-27.4430,-55.9600], tel:"911", guardia:true}
   ],
   especialidades:["Pediatría","Clínica médica","Odontología","Cardiología","Traumatología","Obstetricia"],
-  turnos_agenda:["Mié 8/07 · 09:30","Mié 8/07 · 11:00","Jue 9/07 · 08:15","Jue 9/07 · 15:40","Vie 10/07 · 10:20"],
-  turnos_activos:[
-    {hospital:"Hospital Escuela de Agudos Dr. Ramón Madariaga", esp:"Clínica médica", cuando:"Vie 10/07 · 10:20", estado:"Confirmado"}
-  ],
+  turnos_agenda: mkTurnosAgenda(),        // hoy/mañana/pasado, siempre a futuro (fechas-dinamicas)
+  turnos_activos: [ mkSeedTurno() ],      // turno confirmado semilla, re-fechado en cada carga
   reclamos:[]
 };
 
@@ -622,15 +656,20 @@ const DB = {
 const DEMO_DB_KEY="oriana_demo_db";
 let _demoPersisted=null;
 try{ _demoPersisted=JSON.parse(localStorage.getItem(DEMO_DB_KEY)||"null"); }catch(e){}
-if(_demoPersisted && _demoPersisted.v!==1) _demoPersisted=null;   // shape viejo/desconocido: descartar
+if(_demoPersisted && _demoPersisted.v!==2) _demoPersisted=null;   // shape viejo/desconocido: descartar (v2: turno semilla con flag seed)
 if(_demoPersisted){
-  if(Array.isArray(_demoPersisted.turnos_activos)) DB.turnos_activos=_demoPersisted.turnos_activos;
+  // Turnos: el semilla se REGENERA fresco (arriba) para no quedar atrasado; las reservas del
+  // usuario (sin flag seed) se conservan tal cual, aunque queden en el pasado (decisión del usuario).
+  if(Array.isArray(_demoPersisted.turnos_activos)){
+    const userT=_demoPersisted.turnos_activos.filter(t=>t && !t.seed);
+    DB.turnos_activos=[...DB.turnos_activos, ...userT];
+  }
   if(Array.isArray(_demoPersisted.reclamos)) DB.reclamos=_demoPersisted.reclamos;
 }
 function saveDemoData(){
   try{
     localStorage.setItem(DEMO_DB_KEY, JSON.stringify({
-      v:1,   // versión del shape: si DB cambia, subirla y lo persistido viejo se descarta solo
+      v:2,   // versión del shape: si DB cambia, subirla y lo persistido viejo se descarta solo
       turnos_activos: DB.turnos_activos,
       reclamos: DB.reclamos,
       favs: (typeof favs!=="undefined" && favs) ? favs : {}   // favs vive en el script de eventos
@@ -1431,7 +1470,7 @@ function matchFecha(text){
   let f=DB.turnos_agenda.find(x=>norm(x)===t); if(f) return f;
   f=DB.turnos_agenda.find(x=>{ const time=(x.match(/\d{1,2}:\d{2}/)||[])[0]; if(!time)return false; const alt=time.replace(/^0/,""); return t.includes(time)||t.includes(alt); });
   if(f) return f;
-  return DB.turnos_agenda.find(x=>{ const day=(x.match(/(\d+)\/07/)||[])[1]; return day && new RegExp("(^| |/)"+day+"( |$|/)").test(t); });
+  return DB.turnos_agenda.find(x=>{ const day=(x.match(/(\d+)\/\d+/)||[])[1]; return day && new RegExp("(^| |/)"+day+"( |$|/)").test(t); });
 }
 
 function startTurno(){
@@ -2328,15 +2367,16 @@ function ninosRoute(text){
     return true;
   }
   if(/turno equipo|entrevista/.test(t)){
+    const cuandoAcomp=fmtTurno(addDays(demoBase(),2),"10:00");   // fecha dinámica (pasado mañana), nunca atrasada
     ninosTyping(()=>{
       nbubble("O",`Listo 💜. Te agendé una <strong>entrevista de acompañamiento</strong> con el equipo interdisciplinario (psicología + asesoría legal).`+
         `<div class="card"><div class="row"><span>Centro de la Mujer — Municipio</span><span class="badge g">Confirmado</span></div>`+
         `<div class="row"><span>Modalidad</span><b>Presencial o virtual, como prefieras</b></div>`+
-        `<div class="row"><span>Cuándo</span><b>Jue 9/07 · 10:00</b></div></div>`+
+        `<div class="row"><span>Cuándo</span><b>${cuandoAcomp}</b></div></div>`+
         `<div class="bubble hint" style="margin-top:8px">Quedó en "Mis turnos". Es confidencial. Podés ir acompañada por alguien de confianza.</div>`+
         chipRow([{label:"Ver mis turnos",send:"__verturnos"},{label:"Gracias",send:"gracias"}]));
       speak("Listo. Te agendé una entrevista de acompañamiento con el equipo. Es confidencial y podés ir acompañada.");
-      DB.turnos_activos.push({hospital:"Centro de la Mujer — Municipio", esp:"Acompañamiento (psicología + legal)", cuando:"Jue 9/07 · 10:00", estado:"Confirmado"});
+      DB.turnos_activos.push({hospital:"Centro de la Mujer — Municipio", esp:"Acompañamiento (psicología + legal)", cuando:cuandoAcomp, estado:"Confirmado"});
       saveDemoData();
     });
     return true;
@@ -2504,6 +2544,7 @@ const EVENTOS=[
    lugar:"Largada: Costanera de Posadas", hora:"08:00", precio:"Inscripción gratuita",
    desc:"Circuito de 10K por la costanera del Paraná y una caminata recreativa de 3K para toda la familia. Hidratación, guardarropa y kit del corredor. Inscripción previa obligatoria."}
 ];
+shiftEventos(EVENTOS);   // re-fecha desde HOY preservando el espaciado (fechas-dinamicas): nunca atrasados
 let favs={};
 // favoritos persistidos (la carga de turnos/reclamos vive junto a la definición de DB)
 if(_demoPersisted && _demoPersisted.favs && typeof _demoPersisted.favs==="object") favs=_demoPersisted.favs;
