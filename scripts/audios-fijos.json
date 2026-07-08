@@ -1,0 +1,14 @@
+{
+  "_doc": "Frases FIJAS del acompañamiento con audio pre-generado (FASE 5 item 18). scripts/gen-audios.mjs toma estas 9 de flujo + deriva las 5 de ninosKB (via kbSpoken) y genera assets/audio/<hash>.mp3 + manifest. Si editas una frase aca Y en index.html, hay que regenerar (o cae a /api/tts en vivo por el hash).",
+  "flow": [
+    "Hola María. Soy el espacio de acompañamiento de ORIANA. Es un lugar seguro y confidencial. No estás sola. Si estás en peligro ahora, llamá al 911. La línea 144 atiende las 24 horas.",
+    "Este es el espacio de acompañamiento. ¿Seguimos con tu situación o preferís que te lleve al menú principal?",
+    "Perdoná, no llegué a entenderte bien. ¿Podés contarme un poco más?",
+    "Te conecto con el equipo de acompañamiento. Profesionales en psicología y asesoría legal, gratuito y confidencial.",
+    "Puedo acompañarte a hacer una denuncia. Podés hacerla en la Comisaría de la Mujer, fiscalía o juzgado. No necesitás abogado para denunciar y tenés derecho a patrocinio jurídico gratuito.",
+    "Un plan de seguridad te ayuda a estar más protegida. Identificá una salida segura, tené a mano documentos y llaves, acordá una palabra clave con alguien de confianza, y guardá los números 911 y 144 accesibles.",
+    "Listo. Te agendé una entrevista de acompañamiento con el equipo. Es confidencial y podés ir acompañada.",
+    "Conectando con la línea 144. Estás haciendo lo correcto al buscar ayuda.",
+    "Gracias a vos por confiar, María. No estás sola. Cuando lo necesites, acá voy a estar."
+  ]
+}

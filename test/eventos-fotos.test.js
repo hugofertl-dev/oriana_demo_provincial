@@ -62,7 +62,11 @@ for (const e of EVENTOS) {
   check(`${e.img} existe`, exists);
   if (exists) check(`${e.img} pesa ≤ 155 KB`, fs.statSync(f).size <= 155 * KB);
 }
-const leftovers = fs.readdirSync(path.join(root, "assets")).filter(n => !/^[a-z0-9-]+\.[a-z0-9]+$/.test(n));
+// Solo ARCHIVOS del nivel top de assets/ (los subdirectorios legítimos como assets/audio/
+// —audios fijos, FASE 5 ítem 18— no son "originales pesados"). El guard sigue cazando JPG
+// mal nombrados o sin optimizar sueltos en assets/.
+const leftovers = fs.readdirSync(path.join(root, "assets"), { withFileTypes: true })
+  .filter(d => d.isFile() && !/^[a-z0-9-]+\.[a-z0-9]+$/.test(d.name)).map(d => d.name);
 check("assets/ sin originales pesados ni nombres con espacios/acentos", leftovers.length === 0);
 
 // ── Criterios 1 y 3: tarjetas del mosaico con foto, sin gradiente ni emoji ──

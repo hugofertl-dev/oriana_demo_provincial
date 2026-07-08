@@ -859,6 +859,20 @@ const EL = {
   get style(){ return EL_STYLE; },
   get proxy(){ return ""; }   // sin proxy: llamada directa a ElevenLabs
 };
+// Audios FIJOS pre-generados (FASE 5 ítem 18): las frases del acompañamiento (texto fijo,
+// motor de reglas, no LLM) tienen su MP3 en assets/audio/<hash>.mp3, generado con la MISMA
+// voz que /api/tts (ver scripts/gen-audios.mjs). Amortiza el TTS ENTRE usuarios: reproducción
+// instantánea y sin costo. audioKey = hash FNV-1a del texto ya "speakable" — determinístico e
+// idéntico en el generador. PREGEN = set de hashes disponibles (del manifest); si un texto no
+// está (respuesta del LLM, o frase editada sin regenerar) se usa /api/tts en vivo (fallback).
+function audioKey(s){
+  let h=0x811c9dc5;
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193); }
+  return (h>>>0).toString(16).padStart(8,"0");
+}
+let PREGEN = new Set();
+fetch("assets/audio/manifest.json").then(r=>r.ok?r.json():[]).then(a=>{ if(Array.isArray(a)) PREGEN=new Set(a); }).catch(()=>{});
+
 const audioCache = {};      // texto -> objectURL (evita re-generar)
 // Tope del cache: en una demo larga con voz los blobs de audio crecen sin límite.
 // FIFO de ~30 entradas; lo desalojado libera su objectURL.
@@ -963,7 +977,10 @@ async function webAudioPlay(url, opts={}){
       if(ttsCtx.state!=="running") await ttsCtx.resume().catch(()=>{});
     }
   }
-  const ab=await (await fetch(url)).arrayBuffer();
+  // fetchTimeout (no fetch crudo): con los audios fijos, url puede ser una descarga remota
+  // (assets/audio/*.mp3); un request colgado sin timeout dejaría la promesa sin rechazar y no
+  // dispararía el fallback a /api/tts → ORIANA muda. Con blob URLs locales el timeout es inocuo.
+  const ab=await (await fetchTimeout(url, {}, 8000)).arrayBuffer();
   const buf=await new Promise((res,rej)=>ttsCtx.decodeAudioData(ab,res,rej));  // forma callback: Safari
   if(ttsSrcNode){ try{ ttsSrcNode.onended=null; ttsSrcNode.stop(); }catch(e){} }
   const src=ttsCtx.createBufferSource();
@@ -1026,6 +1043,13 @@ async function speak(text, opts={}){
   const useEleven = USE_SERVER_TTS || (EL.key && EL.voice);
   if(!useEleven){ browserSpeak(clean); return; }
   try{
+    // Audio fijo pre-generado: si esta frase tiene MP3, reproducirlo (sin pegar a /api/tts).
+    // Si el asset falla en reproducir, se sigue de largo al TTS en vivo (fail-safe).
+    const key=audioKey(clean);
+    if(PREGEN.has(key)){
+      try{ await webAudioPlay(`assets/audio/${key}.mp3`, opts); return; }
+      catch(e){ console.warn("audio fijo falló, uso TTS en vivo:", e.message); }
+    }
     const gen = USE_SERVER_TTS ? serverSpeak : elevenSpeak;
     const url=audioCache[clean] || await gen(clean);
     try{
@@ -2207,6 +2231,9 @@ function ninosWelcome(){
     ]));
   speak("Hola María. Soy el espacio de acompañamiento de ORIANA. Es un lugar seguro y confidencial. No estás sola. Si estás en peligro ahora, llamá al 911. La línea 144 atiende las 24 horas.");
 }
+// Texto hablado de una entrada de KB (título + cuerpo + recursos, sin HTML). Global para que
+// scripts/gen-audios.mjs derive las mismas 5 frases desde ninosKB (sin drift con lo que se habla).
+function kbSpoken(hit){ return `${hit.t}. ${hit.body.replace(/<[^>]+>/g," ")}. ${hit.alarm.replace(/<[^>]+>/g," ")}`; }
 const ninosKB=[
   {k:/peligro|ahora|urgente|me va a|escap|encerr|arma|golpeando/, sev:"r", t:"Situación de emergencia",
    body:`Tu seguridad es lo primero 💜. Si podés, buscá un lugar seguro (un ambiente con salida, la casa de alguien de confianza).<br>• <b>Llamá al 911</b> o pedí a alguien que lo haga.<br>• La <b>Línea 144</b> te orienta y activa recursos en tu zona.<br>• Si podés, tené a mano documentos y llaves.`,
@@ -2259,7 +2286,7 @@ function ninosHandle(text){
         {label:"🛟 Plan de seguridad",send:"plan de seguridad"},
         {label:"Otra consulta",send:"otra consulta"}
       ]));
-    speak(`${hit.t}. ${hit.body.replace(/<[^>]+>/g," ")}. ${hit.alarm.replace(/<[^>]+>/g," ")}`);
+    speak(kbSpoken(hit));
   });
 }
 // intercept derivación / denuncia / plan de seguridad

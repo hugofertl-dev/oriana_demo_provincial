@@ -12,5 +12,24 @@
     "regla_wip": "Antes de arrancar trabajo nuevo: si hay in_progress/paused DEL DEV ACTUAL (campo owner), pedir decisión al usuario (WIP-gate). Las de otros devs no bloquean.",
     "regla_cierre": "Al cerrar como done la entrada SE ELIMINA de este archivo y queda en progress/archive/<id>/."
   },
-  "features": []
+  "features": [
+    {
+      "id": "audios-fijos",
+      "titulo": "Pre-generar audios fijos del acompañamiento (14 frases) — amortiguar TTS entre usuarios (FASE 5 ítem 18)",
+      "status": "in_progress",
+      "criterios": [
+        "CUANDO la app va a hablar una frase fija con audio pre-generado (hash en el manifest), EL SISTEMA DEBE reproducir el MP3 de assets/audio/ en vez de llamar a /api/tts.",
+        "CUANDO va a hablar un texto sin audio pre-generado (LLM, o frase editada sin regenerar), EL SISTEMA DEBE caer a /api/tts en vivo, sin errores.",
+        "CUANDO el manifest no carga o falta/falla el MP3, EL SISTEMA DEBE usar /api/tts en vivo (fail-safe: nunca queda mudo).",
+        "La reproducción del audio pre-generado DEBE pasar por el mismo pipeline (webAudioPlay/AudioContext) que el TTS en vivo.",
+        "audioKey() (hash del texto speakable) DEBE ser determinístico e idéntico entre cliente y generador.",
+        "scripts/gen-audios DEBE, por cada frase, pedir el MP3 a /api/tts, nombrarlo por su hash, guardarlo en assets/audio/ y actualizar manifest.json."
+      ],
+      "verification": "node test/audios-fijos.test.js && scripts/verify.sh full",
+      "archivos": ["index.html", "oriana-mobile.html", "scripts/gen-audios.mjs", "scripts/audios-fijos.json", "assets/audio/*", "test/audios-fijos.test.js", "scripts/verify.sh"],
+      "blockedBy": [],
+      "owner": "Hugo",
+      "creada": "2026-07-08"
+    }
+  ]
 }
